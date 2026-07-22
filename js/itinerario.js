@@ -21,7 +21,10 @@ const customPasswordInput = document.getElementById("customPassword");
 const saveCustomBtn = document.getElementById("saveCustomBtn");
 const customStatusEl = document.getElementById("customStatus");
 const customPlansGridEl = document.getElementById("customPlansGrid");
+const bankSearchInput = document.getElementById("bankSearch");
+const clearBoardBtn = document.getElementById("clearBoardBtn");
 
+let bankFilter = "";
 let state = emptyState();
 let firebaseReady = false;
 let db = null;
@@ -184,9 +187,27 @@ function renderBank() {
   const container = document.getElementById("bankGroups");
   if (!container) return;
   container.innerHTML = "";
+
+  const q = bankFilter.trim().toLowerCase();
+  const filtered = !q
+    ? BANK_ORDER
+    : BANK_ORDER.filter((plan) =>
+        plan.title.toLowerCase().includes(q) ||
+        plan.tag.toLowerCase().includes(q) ||
+        plan.description.toLowerCase().includes(q)
+      );
+
+  if (!filtered.length) {
+    const empty = document.createElement("p");
+    empty.className = "custom-empty";
+    empty.textContent = "Ningún plan coincide con «" + bankFilter.trim() + "».";
+    container.appendChild(empty);
+    return;
+  }
+
   const grid = document.createElement("div");
   grid.className = "options";
-  BANK_ORDER.forEach((plan) => {
+  filtered.forEach((plan) => {
     const article = document.createElement("article");
     article.className = "card bank-plan-card in" + (plan.tagClass === "epic" ? " epic-card" : "");
     article.draggable = true;
@@ -322,6 +343,24 @@ function initCustomUI() {
   const savedName = localStorage.getItem(NAME_KEY);
   if (savedName) customAuthorInput.value = savedName;
   saveCustomBtn.addEventListener("click", saveCustomPlan);
+}
+
+function initBankSearch() {
+  if (!bankSearchInput) return;
+  bankSearchInput.addEventListener("input", () => {
+    bankFilter = bankSearchInput.value;
+    renderBank();
+  });
+}
+
+function initBoardToolbar() {
+  if (!clearBoardBtn) return;
+  clearBoardBtn.addEventListener("click", () => {
+    if (!confirm("¿Vaciar todo el tablero? Esto afecta a lo que ven los 4 y no se puede deshacer (las propuestas ya guardadas no se tocan).")) return;
+    state = emptyState();
+    persistBoard();
+    render();
+  });
 }
 
 /* ---------- Botón "Añadir a un día" (alternativa a arrastrar) ---------- */
@@ -783,6 +822,8 @@ renderProposals();
 initDragEvents();
 initProposalUI();
 initCustomUI();
+initBankSearch();
+initBoardToolbar();
 subscribeBoard();
 subscribeProposals();
 subscribeCustomPlans();

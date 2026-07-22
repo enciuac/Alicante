@@ -74,11 +74,24 @@ a{color:inherit}
 .day-num{font-family:var(--display);font-weight:800;font-size:clamp(2.6rem,7vw,4.4rem);color:var(--sea);line-height:1}
 .day-title{font-family:var(--display);font-weight:600;font-size:clamp(1.25rem,3.6vw,1.9rem);line-height:1.15}
 .day-sub{font-size:.86rem;letter-spacing:.16em;text-transform:uppercase;color:var(--sea);opacity:.75;margin-bottom:26px}
-.pick-label{
-  display:inline-flex;align-items:center;gap:8px;font-size:.78rem;letter-spacing:.2em;text-transform:uppercase;
-  color:var(--sea);margin:6px 0 16px;font-weight:600;
+
+/* ================= DAY PREVIEW (index, presentación) ================= */
+.day-preview-body{display:grid;grid-template-columns:280px 1fr;gap:28px;align-items:center}
+.day-preview-photo{width:100%;height:100%;min-height:180px;object-fit:cover;border-radius:var(--radius);box-shadow:var(--shadow)}
+.day-preview-text{font-size:1.02rem;line-height:1.65;color:#22394B;max-width:62ch}
+@media (max-width:720px){
+  .day-preview-body{grid-template-columns:1fr}
+  .day-preview-photo{aspect-ratio:16/9;min-height:0}
 }
-.pick-label::before{content:"";width:26px;height:2px;background:var(--turq)}
+
+/* ================= CTA PLANIFICADOR (index) ================= */
+.cta-planner{
+  background:linear-gradient(160deg,var(--deep) 0%,var(--sea) 70%,#127389 130%);color:var(--white);
+  text-align:center;padding:clamp(48px,8vw,80px) clamp(18px,5vw,64px);
+}
+.cta-planner h2{font-family:var(--display);font-weight:800;font-size:clamp(1.7rem,4.5vw,2.4rem);margin-bottom:10px}
+.cta-planner p{color:var(--turq-soft);font-size:1rem;max-width:52ch;margin:0 auto 26px}
+.cta-planner-btn{max-width:320px;margin:0 auto}
 
 /* ================= CARDS ================= */
 .options{display:grid;gap:16px;grid-template-columns:repeat(2,1fr)}
@@ -130,13 +143,6 @@ a{color:inherit}
 .btn-ghost{background:var(--sand-deep);color:var(--ink)}
 .btn-ghost:hover{background:var(--turq-soft)}
 
-/* ================= NIGHT NOTE ================= */
-.night-note{
-  margin-top:22px;background:linear-gradient(120deg,#0A2B44,#123B5C);color:var(--sand);
-  border-radius:var(--radius);padding:20px 22px;font-size:.92rem;display:flex;gap:14px;align-items:flex-start;
-}
-.night-note .ico{font-size:1.4rem;line-height:1}
-.night-note strong{color:var(--gold)}
 #dia4 .day-num{color:var(--coral)}
 
 /* ================= MINI GALERÍA (plan pages) ================= */
@@ -183,25 +189,6 @@ a{color:inherit}
 .lightbox .lb-prev{left:8px}
 .lightbox .lb-next{right:8px}
 
-/* ================= SUMMARY ================= */
-.summary{background:var(--deep);color:var(--sand);padding:clamp(48px,8vw,90px) clamp(18px,5vw,64px)}
-.summary-inner{max-width:1080px;margin:0 auto}
-.summary h2{font-family:var(--display);font-weight:800;font-size:clamp(1.9rem,5.5vw,3rem);margin-bottom:6px}
-.summary .hint{color:var(--turq-soft);font-size:.94rem;margin-bottom:30px}
-.sum-grid{display:grid;gap:12px}
-.sum-row{
-  display:flex;gap:16px;align-items:center;background:rgba(255,255,255,.06);
-  border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:14px 18px;transition:.3s;
-}
-.sum-row .sd{font-family:var(--display);font-weight:700;min-width:64px;color:var(--turq)}
-.sum-row .sv{font-size:.95rem}
-.sum-row.empty .sv{opacity:.45;font-style:italic}
-.booking{margin-top:38px}
-.booking h3{font-family:var(--display);font-weight:700;font-size:1.2rem;color:var(--gold);margin-bottom:14px}
-.booking ul{list-style:none;display:grid;gap:10px;font-size:.92rem}
-.booking li{display:flex;gap:10px;align-items:flex-start}
-.booking li::before{content:"☑";color:var(--turq)}
-.booking a{color:var(--turq);text-decoration:underline;text-underline-offset:2px}
 footer{background:var(--deep);color:rgba(247,239,223,.5);text-align:center;padding:22px;font-size:.78rem;border-top:1px solid rgba(255,255,255,.1)}
 
 /* ============================================================
@@ -406,6 +393,14 @@ footer{background:var(--deep);color:rgba(247,239,223,.5);text-align:center;paddi
 }
 .itin-bank h2::before,.itin-save h2::before,.itin-proposals h2::before,.itin-custom h2::before{content:"";width:30px;height:3px;background:var(--turq);border-radius:2px}
 .itin-bank .hint,.itin-save .hint,.itin-proposals .hint,.itin-custom .hint{font-size:.88rem;color:#3A566A;margin-bottom:20px}
+.bank-search{
+  display:block;width:100%;max-width:420px;margin-bottom:22px;padding:12px 16px;border-radius:12px;
+  border:1.5px solid rgba(6,42,68,.18);font-family:var(--body);font-size:.92rem;
+  background:var(--white);color:var(--ink);
+}
+.bank-search:focus{outline:none;border-color:var(--turq)}
+.itin-board-toolbar{display:flex;justify-content:flex-end;margin-bottom:10px}
+.itin-board-toolbar .btn{width:auto}
 .bank-plan-card{cursor:grab}
 .bank-plan-card:active{cursor:grabbing}
 .add-day-btn{font-size:.82rem}

@@ -23,6 +23,10 @@
 
 <main class="itin-body">
 
+  <div class="itin-board-toolbar">
+    <button class="btn btn-ghost" id="clearBoardBtn" type="button">🗑️ Vaciar tablero</button>
+  </div>
+
   <section class="itin-board">
     <div class="itin-col" data-day="1">
       <div class="itin-col-head"><span class="d">MIÉ 12</span><span class="l">Llegada</span></div>
@@ -85,6 +89,7 @@
   <section class="itin-bank">
     <h2>Banco de planes</h2>
     <p class="hint">Los 20 planes, en cualquier orden — no tenéis por qué respetar el día original de cada uno. Arrastra una tarjeta a un día del tablero de arriba, o pulsa «📅 Añadir a un día» y elige. Puedes repetir la misma en varios días si queréis dejarla como reserva.</p>
+    <input type="search" class="bank-search" id="bankSearch" placeholder="🔍 Buscar plan… (ej. kayak, playa, buceo)">
     <div class="bank-groups" id="bankGroups"></div>
   </section>
 
