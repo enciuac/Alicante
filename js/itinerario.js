@@ -28,15 +28,12 @@ let bankFilter = "";
 let state = emptyState();
 let firebaseReady = false;
 let db = null;
-let boardDocRef = null;
-let persistTimer = null;
 let dragInfo = null;
-let dirty = false;
 let proposals = []; // [{id, name, itinerary, votes, createdAt}]
 let customPlans = []; // [{id, title, author, details, createdAt}]
 
-const VOTER_KEY = "itin-voter-id";
 const NAME_KEY = "itin-your-name";
+const BOARD_KEY = "itin-board-state";
 
 function uid() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
@@ -85,15 +82,6 @@ function shuffle(arr) {
    respetar el día original de cada plan. Se baraja una sola vez al
    cargar para que el orden no salte con cada re-render. */
 const BANK_ORDER = shuffle(PLANS);
-
-function getVoterId() {
-  let id = localStorage.getItem(VOTER_KEY);
-  if (!id) {
-    id = window.crypto && crypto.randomUUID ? crypto.randomUUID() : uid();
-    localStorage.setItem(VOTER_KEY, id);
-  }
-  return id;
-}
 
 /* Hash simple (SHA-256) para no guardar la contraseña en texto plano.
    Es solo protección anti-despiste entre el grupo, no seguridad real:
@@ -356,7 +344,7 @@ function initBankSearch() {
 function initBoardToolbar() {
   if (!clearBoardBtn) return;
   clearBoardBtn.addEventListener("click", () => {
-    if (!confirm("¿Vaciar todo el tablero? Esto afecta a lo que ven los 4 y no se puede deshacer (las propuestas ya guardadas no se tocan).")) return;
+    if (!confirm("¿Vaciar tu tablero? Solo afecta a lo que ves tú en este navegador y no se puede deshacer (las propuestas ya guardadas no se tocan).")) return;
     state = emptyState();
     persistBoard();
     render();
@@ -566,7 +554,7 @@ function initFirebase() {
   firebaseInitPromise = (async () => {
     const isConfigured = firebaseConfig.apiKey && firebaseConfig.apiKey !== "YOUR_API_KEY";
     if (!isConfigured) {
-      statusEl.textContent = "⚙️ Firebase sin configurar — de momento el orden solo se guarda en este navegador. Ver js/firebase-config.js.";
+      statusEl.textContent = "⚙️ Firebase sin configurar — no se podrán guardar ni votar propuestas todavía. Ver js/firebase-config.js.";
       return null;
     }
     try {
@@ -585,47 +573,26 @@ function initFirebase() {
   return firebaseInitPromise;
 }
 
-/* ---------- Tablero compartido: persistencia ---------- */
+/* ---------- Tablero: es privado, solo tuyo en este navegador ----------
+   Vive en localStorage, no en Firebase: lo que arrastras aquí no lo ve
+   nadie más hasta que pulses "Guardar esta propuesta", que es lo que
+   sí se comparte con el grupo (colección propuestas). */
 
 function persistBoard() {
-  /* dirty se marca YA, antes de saber si Firebase está listo: si no,
-     una edición local hecha mientras Firebase todavía está cargando
-     podría perderse en cuanto llegue el primer snapshot remoto. */
-  dirty = true;
-  clearTimeout(persistTimer);
-  const pending = state;
-  persistTimer = setTimeout(async () => {
-    try {
-      const firestoreMod = await initFirebase();
-      if (!firestoreMod) return; // Firebase sin configurar: solo local
-      if (!boardDocRef) boardDocRef = firestoreMod.doc(db, "itinerario", "plan");
-      await firestoreMod.setDoc(boardDocRef, pending);
-      if (state === pending) dirty = false;
-    } catch (err) {
-      console.error("Error guardando itinerario en Firebase", err);
-      statusEl.textContent = "⚠️ No se pudo guardar — revisad la conexión";
-    }
-  }, 250);
+  try {
+    localStorage.setItem(BOARD_KEY, JSON.stringify(state));
+  } catch (err) {
+    console.error("Error guardando el tablero en este navegador", err);
+  }
 }
 
-async function subscribeBoard() {
-  const firestoreMod = await initFirebase();
-  if (!firestoreMod) return;
-  boardDocRef = firestoreMod.doc(db, "itinerario", "plan");
-  firestoreMod.onSnapshot(
-    boardDocRef,
-    (snap) => {
-      if (dirty) return; // hay una edición local sin confirmar: no la pisamos
-      state = snap.exists() ? snap.data() : emptyState();
-      render();
-      statusEl.textContent = "✓ Sincronizado con el grupo";
-    },
-    (err) => {
-      console.error("Error de Firestore", err);
-      firebaseReady = false;
-      statusEl.textContent = "⚠️ Sin conexión a la base de datos (revisad las reglas de Firestore) — de momento el orden solo se guarda en este navegador";
-    }
-  );
+function loadBoard() {
+  try {
+    const raw = localStorage.getItem(BOARD_KEY);
+    if (raw) state = JSON.parse(raw);
+  } catch (err) {
+    console.error("Error leyendo el tablero guardado", err);
+  }
 }
 
 /* ---------- Propuestas: guardar, listar y votar ---------- */
@@ -643,6 +610,13 @@ function formatDate(ts) {
     d.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
 }
 
+function voteNames(votes, choice) {
+  if (!votes) return [];
+  return Object.values(votes)
+    .filter((v) => v && v.choice === choice)
+    .map((v) => v.name);
+}
+
 function renderProposals() {
   if (!proposalsListEl) return;
   proposalsListEl.innerHTML = "";
@@ -653,8 +627,8 @@ function renderProposals() {
     proposalsListEl.appendChild(empty);
     return;
   }
-  const voterId = getVoterId();
-  const score = (p) => countVotes(p.votes, "like") - countVotes(p.votes, "dislike");
+  const myNameKey = normalizeName(localStorage.getItem(NAME_KEY) || "");
+  const score = (p) => voteNames(p.votes, "like").length - voteNames(p.votes, "dislike").length;
   const sorted = [...proposals].sort((a, b) => score(b) - score(a));
 
   /* Solo se destaca cuando hay un líder claro (puntúa más que la
@@ -667,9 +641,9 @@ function renderProposals() {
     const card = document.createElement("div");
     card.className = "proposal-card" + (hasLeader && i === 0 ? " featured" : "");
     card.dataset.id = p.id;
-    const myVote = p.votes ? p.votes[voterId] : undefined;
-    const likeCount = countVotes(p.votes, "like");
-    const dislikeCount = countVotes(p.votes, "dislike");
+    const myVote = myNameKey && p.votes ? p.votes[myNameKey] : undefined;
+    const likeNames = voteNames(p.votes, "like");
+    const dislikeNames = voteNames(p.votes, "dislike");
 
     const daysHtml = DAYS.map(({ day, label }) => {
       const periodsHtml = PERIODS.map(({ key: period, label: periodLabel }) => {
@@ -688,17 +662,14 @@ function renderProposals() {
       '</span><button class="delete-btn" data-delete-proposal="1" title="Borrar propuesta" aria-label="Borrar">✕</button></div>' +
       '<div class="proposal-days">' + daysHtml + "</div>" +
       '<div class="vote-row">' +
-      '<button class="vote-btn like' + (myVote === "like" ? " active" : "") + '" data-vote="like">👍 <span>' + likeCount + "</span></button>" +
-      '<button class="vote-btn dislike' + (myVote === "dislike" ? " active" : "") + '" data-vote="dislike">👎 <span>' + dislikeCount + "</span></button>" +
+      '<button class="vote-btn like' + (myVote && myVote.choice === "like" ? " active" : "") + '" data-vote="like">👍 <span>' + likeNames.length + "</span></button>" +
+      '<button class="vote-btn dislike' + (myVote && myVote.choice === "dislike" ? " active" : "") + '" data-vote="dislike">👎 <span>' + dislikeNames.length + "</span></button>" +
       "</div>" +
+      (likeNames.length ? '<p class="vote-names">👍 ' + likeNames.map(escapeHtml).join(", ") + "</p>" : "") +
+      (dislikeNames.length ? '<p class="vote-names dislike">👎 ' + dislikeNames.map(escapeHtml).join(", ") + "</p>" : "") +
       '<a class="btn btn-ghost view-proposal-btn" href="propuesta.html?id=' + encodeURIComponent(p.id) + '" target="_blank" rel="noopener">Ver propuesta →</a>';
     proposalsListEl.appendChild(card);
   });
-}
-
-function countVotes(votes, choice) {
-  if (!votes) return 0;
-  return Object.values(votes).filter((v) => v === choice).length;
 }
 
 async function deleteProposal(proposalId) {
@@ -725,31 +696,60 @@ async function deleteProposal(proposalId) {
   }
 }
 
+function normalizeName(s) {
+  return s.trim().toLowerCase();
+}
+
+/* Pide el nombre de quien vota (obligatorio, prellenado con el último
+   usado) para poder identificar a la persona por nombre y no por
+   dispositivo — así no cuela votar varias veces desde el móvil, la
+   tablet y el portátil. Devuelve null si cancela o no escribe nada. */
+function promptVoterName() {
+  const savedName = localStorage.getItem(NAME_KEY) || "";
+  const input = prompt("Tu nombre para votar (obligatorio):", savedName);
+  if (input === null) return null; // cancelado
+  const displayName = input.trim();
+  if (!displayName) {
+    alert("Hace falta un nombre para votar.");
+    return null;
+  }
+  localStorage.setItem(NAME_KEY, displayName);
+  return displayName;
+}
+
 /* El 👍 es un recurso único por persona: solo puede tener una
    propuesta con "like" a la vez (para dificultar los empates). El 👎
    es libre: se puede votar negativo en tantas propuestas como se
-   quiera, independientemente unas de otras. */
+   quiera, independientemente unas de otras. Ambos exigen nombre,
+   guardado por nombre normalizado para que cuente como la misma
+   persona en cualquier dispositivo. */
 async function vote(proposalId, choice) {
   const firestoreMod = await initFirebase();
   if (!firestoreMod || !db) return;
   const proposal = proposals.find((p) => p.id === proposalId);
   if (!proposal) return;
-  const voterId = getVoterId();
-  const current = proposal.votes ? proposal.votes[voterId] : undefined;
-  const ref = firestoreMod.doc(db, "propuestas", proposalId);
-  const field = "votes." + voterId;
+
+  const displayName = promptVoterName();
+  if (!displayName) return;
+  const key = normalizeName(displayName);
+  const field = "votes." + key;
+  const current = proposal.votes && proposal.votes[key];
+
   try {
-    if (current === choice) {
-      await firestoreMod.updateDoc(ref, { [field]: firestoreMod.deleteField() });
+    if (current && current.choice === choice) {
+      // ya tenía este mismo voto puesto aquí: lo quita (toggle off)
+      await firestoreMod.updateDoc(firestoreMod.doc(db, "propuestas", proposalId), { [field]: firestoreMod.deleteField() });
       return;
     }
     if (choice === "like") {
-      const otherLiked = proposals.find((p) => p.id !== proposalId && p.votes && p.votes[voterId] === "like");
+      const otherLiked = proposals.find(
+        (p) => p.id !== proposalId && p.votes && p.votes[key] && p.votes[key].choice === "like"
+      );
       if (otherLiked) {
         await firestoreMod.updateDoc(firestoreMod.doc(db, "propuestas", otherLiked.id), { [field]: firestoreMod.deleteField() });
       }
     }
-    await firestoreMod.updateDoc(ref, { [field]: choice });
+    await firestoreMod.updateDoc(firestoreMod.doc(db, "propuestas", proposalId), { [field]: { choice, name: displayName } });
   } catch (err) {
     console.error("Error al votar", err);
   }
@@ -813,9 +813,13 @@ function initProposalUI() {
   saveBtn.addEventListener("click", saveProposal);
 }
 
-/* El banco y el tablero se pintan de inmediato con el estado local
-   (vacío) para que la página nunca se quede en blanco esperando a
-   Firebase; los onSnapshot los repintan en cuanto llega el estado real. */
+/* El tablero es privado (localStorage, se carga al momento). El banco
+   de planes, las propuestas del grupo y los planes propuestos sí son
+   compartidos y se pintan vacíos primero para que la página nunca se
+   quede en blanco esperando a Firebase; los onSnapshot los repintan en
+   cuanto llega el estado real. */
+loadBoard();
+statusEl.textContent = "💾 Este tablero es solo tuyo, se guarda en este navegador";
 dayPopover = buildDayPopover();
 render();
 renderProposals();
@@ -824,6 +828,5 @@ initProposalUI();
 initCustomUI();
 initBankSearch();
 initBoardToolbar();
-subscribeBoard();
 subscribeProposals();
 subscribeCustomPlans();

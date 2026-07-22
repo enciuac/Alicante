@@ -213,8 +213,10 @@ footer{background:var(--deep);color:rgba(247,239,223,.5);text-align:center;paddi
 
 /* ---- página de propuesta (propuesta.html) ---- */
 .prop-loading{color:#3A566A;font-size:.95rem}
+#propBody.plan-body .plan-section + .plan-section{border-top:1.5px solid rgba(6,42,68,.18);padding-top:clamp(28px,4vw,40px)}
 .prop-period{margin:14px 0 22px}
 .prop-period:last-child{margin-bottom:0}
+.prop-period + .prop-period{border-top:1px dotted rgba(6,42,68,.3);padding-top:14px;margin-top:-6px}
 .prop-period-title{font-family:var(--display);font-weight:700;font-size:.95rem;color:var(--sea);margin-bottom:10px}
 .prop-day-empty{color:rgba(6,42,68,.45);font-size:.92rem;font-style:italic}
 .prop-day-plans{display:grid;gap:16px}
@@ -446,9 +448,13 @@ footer{background:var(--deep);color:rgba(247,239,223,.5);text-align:center;paddi
 .proposal-head h3{font-family:var(--display);font-weight:700;font-size:1.05rem;color:var(--sea)}
 .proposal-date{font-size:.72rem;color:rgba(6,42,68,.45);white-space:nowrap}
 .proposal-days{display:grid;gap:10px;font-size:.8rem}
-.proposal-day{display:flex;flex-direction:column;gap:4px}
+.proposal-day{
+  display:flex;flex-direction:column;gap:4px;padding:10px 12px;border-radius:12px;
+  background:rgba(14,76,110,.045);border:1px solid rgba(6,42,68,.09);
+}
 .proposal-day .pd-label{font-weight:700;color:var(--sea);font-size:.7rem;letter-spacing:.06em;text-transform:uppercase}
-.pd-period{display:flex;gap:6px;align-items:flex-start;padding-left:2px}
+.pd-period{display:flex;gap:6px;align-items:flex-start;padding-left:2px;padding-top:3px}
+.pd-period + .pd-period{border-top:1px dotted rgba(6,42,68,.3);margin-top:2px}
 .pd-period-label{flex:0 0 20px;font-size:.75rem;line-height:1.5}
 .pd-period ul{list-style:none;display:flex;flex-direction:column;gap:2px;color:#3A566A;flex:1}
 .pd-empty{color:rgba(6,42,68,.35);font-style:italic}
@@ -461,6 +467,8 @@ footer{background:var(--deep);color:rgba(247,239,223,.5);text-align:center;paddi
 .vote-btn:hover{border-color:var(--turq-soft)}
 .vote-btn.active{background:var(--turq-soft);border-color:var(--turq);color:var(--sea)}
 .vote-btn.dislike.active{background:#FFD9D3;border-color:#FF6B57;color:#B3311F}
+.vote-names{font-size:.75rem;color:rgba(6,42,68,.55);margin-top:-2px}
+.vote-names.dislike{color:rgba(179,49,31,.7)}
 
 /* ---- botón flotante ---- */
 .fab-itin{
