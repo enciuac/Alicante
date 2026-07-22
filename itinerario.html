@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vuestro itinerario personalizado · Costa Blanca 12–16 agosto</title>
+<meta name="description" content="Arrastra y ordena los planes de cada día para armar el itinerario definitivo del viaje, sincronizado en tiempo real para los 4.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300..800&family=Instrument+Sans:ital,wght@0,400..700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<header class="plan-hero">
+  <a class="back" href="index.html">← Volver al itinerario base</a>
+  <p class="plan-eyebrow">Arrastra y suelta · se guarda para los 4</p>
+  <h1>Vuestro itinerario personalizado</h1>
+  <p class="lede">Arrastrad cualquier plan del banco a un día para añadirlo, reordenad dentro de cada columna según el orden en que queráis hacerlo, y quitad los que no os convenzan. Los cambios se guardan solos y los ve todo el grupo.</p>
+  <p class="sync-status" id="syncStatus">Conectando…</p>
+</header>
+
+<main class="itin-body">
+
+  <section class="itin-board">
+    <div class="itin-col" data-day="1">
+      <div class="itin-col-head"><span class="d">MIÉ 12</span><span class="l">Llegada</span></div>
+      <ul class="itin-list" data-day="1" id="list-1"></ul>
+    </div>
+    <div class="itin-col" data-day="2">
+      <div class="itin-col-head"><span class="d">JUE 13</span><span class="l">Mar</span></div>
+      <ul class="itin-list" data-day="2" id="list-2"></ul>
+    </div>
+    <div class="itin-col" data-day="3">
+      <div class="itin-col-head"><span class="d">VIE 14</span><span class="l">Montaña</span></div>
+      <ul class="itin-list" data-day="3" id="list-3"></ul>
+    </div>
+    <div class="itin-col" data-day="4">
+      <div class="itin-col-head"><span class="d">SÁB 15</span><span class="l">Fiesta</span></div>
+      <ul class="itin-list" data-day="4" id="list-4"></ul>
+    </div>
+    <div class="itin-col" data-day="5">
+      <div class="itin-col-head"><span class="d">DOM 16</span><span class="l">Despedida</span></div>
+      <ul class="itin-list" data-day="5" id="list-5"></ul>
+    </div>
+  </section>
+
+  <section class="itin-bank">
+    <h2>Banco de planes</h2>
+    <p class="hint">Arrastra cualquiera de estas tarjetas a un día del tablero de arriba. Puedes repetir la misma en varios días si queréis dejarla como reserva.</p>
+    <div class="bank-groups" id="bankGroups"></div>
+  </section>
+
+</main>
+
+<footer>Itinerario Costa Blanca · 12–16 agosto · hecho para 4 valientes</footer>
+
+<script type="module" src="js/itinerario.js"></script>
+</body>
+</html>
