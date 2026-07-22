@@ -343,6 +343,7 @@ footer{background:var(--deep);color:rgba(247,239,223,.5);text-align:center;paddi
 }
 .itin-item.dragging{opacity:.35}
 .itin-item.just-added{border-color:var(--turq);box-shadow:0 0 0 4px rgba(56,201,181,.3);transition:border-color .3s,box-shadow .3s}
+.itin-item.proposed-item{background:#FFF9E9;border-color:rgba(255,217,142,.9)}
 .itin-item .row{display:flex;justify-content:space-between;align-items:center;gap:6px}
 .itin-item .item-title{font-weight:700;color:var(--ink);text-decoration:none;line-height:1.25}
 .itin-item .item-title:hover{text-decoration:underline}
@@ -361,13 +362,13 @@ footer{background:var(--deep);color:rgba(247,239,223,.5);text-align:center;paddi
 .tag-mini.adrenalina{background:#FFD9D3;color:#B3311F}
 .tag-mini.epic{background:linear-gradient(120deg,#0E7A6E,#2FB3A6);color:#fff}
 
-.itin-bank,.itin-save,.itin-proposals{margin-top:44px}
-.itin-bank h2,.itin-save h2,.itin-proposals h2{
+.itin-bank,.itin-save,.itin-proposals,.itin-custom{margin-top:44px}
+.itin-bank h2,.itin-save h2,.itin-proposals h2,.itin-custom h2{
   font-family:var(--display);font-weight:700;font-size:clamp(1.2rem,3vw,1.5rem);
   margin-bottom:6px;display:flex;align-items:center;gap:12px;
 }
-.itin-bank h2::before,.itin-save h2::before,.itin-proposals h2::before{content:"";width:30px;height:3px;background:var(--turq);border-radius:2px}
-.itin-bank .hint,.itin-save .hint,.itin-proposals .hint{font-size:.88rem;color:#3A566A;margin-bottom:20px}
+.itin-bank h2::before,.itin-save h2::before,.itin-proposals h2::before,.itin-custom h2::before{content:"";width:30px;height:3px;background:var(--turq);border-radius:2px}
+.itin-bank .hint,.itin-save .hint,.itin-proposals .hint,.itin-custom .hint{font-size:.88rem;color:#3A566A;margin-bottom:20px}
 .bank-plan-card{cursor:grab}
 .bank-plan-card:active{cursor:grabbing}
 .add-day-btn{font-size:.82rem}
@@ -394,6 +395,21 @@ footer{background:var(--deep);color:rgba(247,239,223,.5);text-align:center;paddi
 .save-row input:focus{outline:none;border-color:var(--turq)}
 .save-row .btn{width:auto;flex:0 0 auto}
 .save-status{margin-top:10px;font-size:.85rem;color:var(--sea);font-weight:600;min-height:1.2em}
+
+/* ---- proponer un plan nuevo ---- */
+.custom-form{display:flex;flex-direction:column;gap:10px;max-width:520px;margin-bottom:20px}
+.custom-form input,.custom-form textarea{
+  padding:12px 16px;border-radius:12px;border:1.5px solid rgba(6,42,68,.18);
+  font-family:var(--body);font-size:.92rem;background:var(--white);color:var(--ink);resize:vertical;
+}
+.custom-form input:focus,.custom-form textarea:focus{outline:none;border-color:var(--turq)}
+.custom-form .btn{width:auto;align-self:flex-start}
+.proposed-plan-card{
+  border-color:rgba(255,217,142,.9);background:linear-gradient(175deg,#FFF9E9 0%,var(--white) 55%);
+}
+.tag.proposed{background:var(--gold);color:var(--deep)}
+.tag-mini.proposed{background:var(--gold);color:var(--deep)}
+.custom-empty{font-size:.88rem;color:rgba(6,42,68,.45);grid-column:1/-1}
 
 /* ---- propuestas del grupo ---- */
 .proposals-list{display:grid;gap:16px;grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}

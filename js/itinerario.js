@@ -9,6 +9,12 @@ const saveStatusEl = document.getElementById("saveStatus");
 const nameInput = document.getElementById("proposalName");
 const saveBtn = document.getElementById("saveProposalBtn");
 const proposalsListEl = document.getElementById("proposalsList");
+const customTitleInput = document.getElementById("customTitle");
+const customAuthorInput = document.getElementById("customAuthor");
+const customDetailsInput = document.getElementById("customDetails");
+const saveCustomBtn = document.getElementById("saveCustomBtn");
+const customStatusEl = document.getElementById("customStatus");
+const customPlansGridEl = document.getElementById("customPlansGrid");
 
 let state = { day1: [], day2: [], day3: [], day4: [], day5: [] };
 let firebaseReady = false;
@@ -18,6 +24,7 @@ let persistTimer = null;
 let dragInfo = null;
 let dirty = false;
 let proposals = []; // [{id, name, itinerary, votes, createdAt}]
+let customPlans = []; // [{id, title, author, details, createdAt}]
 
 const VOTER_KEY = "itin-voter-id";
 const NAME_KEY = "itin-your-name";
@@ -59,6 +66,27 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
+/* Busca un plan tanto entre los 20 oficiales como entre las propuestas
+   de plan guardadas por el grupo, para que un item del tablero (o de
+   una propuesta de itinerario) pueda referenciar cualquiera de los dos. */
+function findPlan(slug) {
+  const official = PLANS.find((p) => p.slug === slug);
+  if (official) return official;
+  const custom = customPlans.find((p) => p.id === slug);
+  if (!custom) return null;
+  return {
+    slug: custom.id,
+    title: custom.title,
+    tag: "Propuesta de " + custom.author,
+    tagClass: "proposed",
+    intensity: "",
+    href: null,
+    description: custom.details,
+    facts: [],
+    isCustom: true
+  };
+}
+
 /* ---------- Tablero: render ---------- */
 
 function render() {
@@ -74,25 +102,29 @@ function render() {
       list.appendChild(empty);
     }
     items.forEach((item, idx) => {
-      const plan = PLANS.find((p) => p.slug === item.slug);
+      const plan = findPlan(item.slug);
       if (!plan) return;
       const li = document.createElement("li");
-      li.className = "itin-item";
+      li.className = "itin-item" + (plan.isCustom ? " proposed-item" : "");
       li.draggable = true;
       li.dataset.id = item.id;
       li.dataset.day = day;
       li.dataset.index = idx;
+      const titleHtml = plan.href
+        ? '<a class="item-title" href="' + plan.href + '" target="_blank" rel="noopener">' + escapeHtml(plan.title) + "</a>"
+        : '<span class="item-title">' + escapeHtml(plan.title) + "</span>";
       li.innerHTML =
         '<div class="row">' +
-        '<span class="tag-mini' + (plan.tagClass ? " " + plan.tagClass : "") + '">' + plan.tag + "</span>" +
+        '<span class="tag-mini' + (plan.tagClass ? " " + plan.tagClass : "") + '">' + escapeHtml(plan.tag) + "</span>" +
         '<button class="remove-btn" data-remove="1" title="Quitar del día" aria-label="Quitar">✕</button>' +
         "</div>" +
-        '<a class="item-title" href="' + plan.href + '" target="_blank" rel="noopener">' + plan.title + "</a>" +
-        '<span class="item-int">' + plan.intensity + "</span>";
+        titleHtml +
+        (plan.intensity ? '<span class="item-int">' + plan.intensity + "</span>" : "");
       list.appendChild(li);
     });
   }
   renderBank();
+  renderCustomPlans();
 }
 
 /* ---------- Banco de planes: mismas cards que la home ---------- */
@@ -121,6 +153,91 @@ function renderBank() {
     grid.appendChild(article);
   });
   container.appendChild(grid);
+}
+
+/* ---------- Propón un plan: cards de la misma familia, en otro color ---------- */
+
+function renderCustomPlans() {
+  if (!customPlansGridEl) return;
+  customPlansGridEl.innerHTML = "";
+  if (!customPlans.length) {
+    const empty = document.createElement("p");
+    empty.className = "custom-empty";
+    empty.textContent = "Todavía no hay planes propuestos por el grupo.";
+    customPlansGridEl.appendChild(empty);
+    return;
+  }
+  customPlans.forEach((plan) => {
+    const article = document.createElement("article");
+    article.className = "card bank-plan-card proposed-plan-card in";
+    article.draggable = true;
+    article.dataset.slug = plan.id;
+    article.innerHTML =
+      '<div class="card-top"><span class="tag proposed">Propuesta de ' + escapeHtml(plan.author) + "</span></div>" +
+      "<h3>" + escapeHtml(plan.title) + "</h3>" +
+      "<p>" + escapeHtml(plan.details) + "</p>" +
+      '<div class="card-bottom">' +
+      '<button class="btn btn-ghost add-day-btn" type="button" data-slug="' + plan.id + '">📅 Añadir a un día</button>' +
+      "</div>";
+    customPlansGridEl.appendChild(article);
+  });
+}
+
+async function saveCustomPlan() {
+  const title = customTitleInput.value.trim();
+  const author = customAuthorInput.value.trim();
+  const details = customDetailsInput.value.trim();
+  if (!title || !author || !details) {
+    customStatusEl.textContent = "Rellena nombre del plan, tu nombre y los detalles.";
+    return;
+  }
+  localStorage.setItem(NAME_KEY, author);
+  const firestoreMod = await initFirebase();
+  if (!firestoreMod || !db) {
+    customStatusEl.textContent = "⚠️ Firebase sin configurar — no se puede guardar todavía.";
+    return;
+  }
+  saveCustomBtn.disabled = true;
+  customStatusEl.textContent = "Guardando…";
+  try {
+    await firestoreMod.addDoc(firestoreMod.collection(db, "planes-propuestos"), {
+      title,
+      author,
+      details,
+      createdAt: firestoreMod.serverTimestamp()
+    });
+    customStatusEl.textContent = "✓ Plan propuesto guardado";
+    customTitleInput.value = "";
+    customDetailsInput.value = "";
+  } catch (err) {
+    console.error("Error guardando el plan propuesto", err);
+    customStatusEl.textContent = "⚠️ No se pudo guardar — revisad la conexión";
+  } finally {
+    saveCustomBtn.disabled = false;
+  }
+}
+
+async function subscribeCustomPlans() {
+  const firestoreMod = await initFirebase();
+  if (!firestoreMod) return;
+  const col = firestoreMod.collection(db, "planes-propuestos");
+  firestoreMod.onSnapshot(
+    col,
+    (snap) => {
+      customPlans = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      render();
+    },
+    (err) => {
+      console.error("Error cargando planes propuestos", err);
+    }
+  );
+}
+
+function initCustomUI() {
+  if (!saveCustomBtn) return;
+  const savedName = localStorage.getItem(NAME_KEY);
+  if (savedName) customAuthorInput.value = savedName;
+  saveCustomBtn.addEventListener("click", saveCustomPlan);
 }
 
 /* ---------- Botón "Añadir a un día" (alternativa a arrastrar) ---------- */
@@ -372,9 +489,7 @@ async function subscribeBoard() {
 
 function proposalDayItems(itinerary, day) {
   const items = (itinerary && itinerary["day" + day]) || [];
-  return items
-    .map((it) => PLANS.find((p) => p.slug === it.slug))
-    .filter(Boolean);
+  return items.map((it) => findPlan(it.slug)).filter(Boolean);
 }
 
 function formatDate(ts) {
@@ -515,5 +630,7 @@ render();
 renderProposals();
 initDragEvents();
 initProposalUI();
+initCustomUI();
 subscribeBoard();
 subscribeProposals();
+subscribeCustomPlans();

@@ -62,6 +62,19 @@
     <div class="proposals-list" id="proposalsList"></div>
   </section>
 
+  <section class="itin-custom">
+    <h2>Propón un plan</h2>
+    <p class="hint">¿Se os ocurre un plan que no está en la lista? Añadidlo aquí: aparecerá como tarjeta para arrastrar igual que las demás, en otro color para que se note que es una propuesta vuestra.</p>
+    <div class="custom-form">
+      <input type="text" id="customTitle" placeholder="Nombre del plan" maxlength="60">
+      <input type="text" id="customAuthor" placeholder="Tu nombre" maxlength="40">
+      <textarea id="customDetails" placeholder="Detalles del plan" maxlength="600" rows="3"></textarea>
+      <button class="btn btn-primary" id="saveCustomBtn" type="button">Guardar propuesta de plan</button>
+    </div>
+    <p class="save-status" id="customStatus"></p>
+    <div class="options" id="customPlansGrid"></div>
+  </section>
+
   <section class="itin-bank">
     <h2>Banco de planes</h2>
     <p class="hint">Los 20 planes, en cualquier orden — no tenéis por qué respetar el día original de cada uno. Arrastra una tarjeta a un día del tablero de arriba, o pulsa «📅 Añadir a un día» y elige. Puedes repetir la misma en varios días si queréis dejarla como reserva.</p>
