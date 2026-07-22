@@ -342,6 +342,7 @@ footer{background:var(--deep);color:rgba(247,239,223,.5);text-align:center;paddi
   display:flex;flex-direction:column;gap:6px;font-size:.85rem;cursor:grab;border:2px solid transparent;
 }
 .itin-item.dragging{opacity:.35}
+.itin-item.just-added{border-color:var(--turq);box-shadow:0 0 0 4px rgba(56,201,181,.3);transition:border-color .3s,box-shadow .3s}
 .itin-item .row{display:flex;justify-content:space-between;align-items:center;gap:6px}
 .itin-item .item-title{font-weight:700;color:var(--ink);text-decoration:none;line-height:1.25}
 .itin-item .item-title:hover{text-decoration:underline}
@@ -367,10 +368,22 @@ footer{background:var(--deep);color:rgba(247,239,223,.5);text-align:center;paddi
 }
 .itin-bank h2::before,.itin-save h2::before,.itin-proposals h2::before{content:"";width:30px;height:3px;background:var(--turq);border-radius:2px}
 .itin-bank .hint,.itin-save .hint,.itin-proposals .hint{font-size:.88rem;color:#3A566A;margin-bottom:20px}
-.bank-day-title{font-family:var(--display);font-weight:700;font-size:1rem;color:var(--sea);margin:28px 0 14px}
-.bank-day-title:first-child{margin-top:0}
 .bank-plan-card{cursor:grab}
 .bank-plan-card:active{cursor:grabbing}
+.add-day-btn{font-size:.82rem}
+
+/* ---- popover "¿qué día?" ---- */
+.day-popover{
+  position:fixed;z-index:200;background:var(--white);border-radius:14px;box-shadow:0 14px 40px rgba(6,42,68,.3);
+  padding:10px;min-width:180px;
+}
+.day-popover-title{font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:rgba(6,42,68,.5);padding:4px 8px 8px}
+.day-popover-options{display:flex;flex-direction:column;gap:4px}
+.day-popover-options button{
+  background:none;border:none;text-align:left;padding:9px 10px;border-radius:8px;font-size:.88rem;
+  font-family:var(--body);color:var(--ink);cursor:pointer;
+}
+.day-popover-options button:hover{background:var(--turq-soft);color:var(--sea)}
 
 /* ---- guardar propuesta ---- */
 .save-row{display:flex;gap:10px;flex-wrap:wrap}

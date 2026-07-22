@@ -30,6 +30,20 @@ function emptyState() {
   return { day1: [], day2: [], day3: [], day4: [], day5: [] };
 }
 
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/* Orden fijo y mezclado del banco: es un planificador, no hay que
+   respetar el día original de cada plan. Se baraja una sola vez al
+   cargar para que el orden no salte con cada re-render. */
+const BANK_ORDER = shuffle(PLANS);
+
 function getVoterId() {
   let id = localStorage.getItem(VOTER_KEY);
   if (!id) {
@@ -84,33 +98,83 @@ function render() {
 /* ---------- Banco de planes: mismas cards que la home ---------- */
 
 function renderBank() {
-  if (!proposalsListEl && !document.getElementById("bankGroups")) return;
   const container = document.getElementById("bankGroups");
   if (!container) return;
   container.innerHTML = "";
-  for (const { day, label, sub } of DAYS) {
-    const title = document.createElement("h3");
-    title.className = "bank-day-title";
-    title.textContent = "Día " + day + " · " + label + " · " + sub;
-    container.appendChild(title);
+  const grid = document.createElement("div");
+  grid.className = "options";
+  BANK_ORDER.forEach((plan) => {
+    const article = document.createElement("article");
+    article.className = "card bank-plan-card in" + (plan.tagClass === "epic" ? " epic-card" : "");
+    article.draggable = true;
+    article.dataset.slug = plan.slug;
+    article.innerHTML =
+      '<div class="card-top"><span class="tag' + (plan.tagClass ? " " + plan.tagClass : "") + '">' + plan.tag + "</span>" +
+      '<span class="intensity">' + plan.intensity + "</span></div>" +
+      "<h3>" + plan.title + "</h3>" +
+      "<p>" + plan.description + "</p>" +
+      '<ul class="facts">' + plan.facts.map((f) => "<li>" + f + "</li>").join("") + "</ul>" +
+      '<div class="card-bottom">' +
+      '<a class="btn btn-primary" href="' + plan.href + '" target="_blank" rel="noopener">Ver plan detallado →</a>' +
+      '<button class="btn btn-ghost add-day-btn" type="button" data-slug="' + plan.slug + '">📅 Añadir a un día</button>' +
+      "</div>";
+    grid.appendChild(article);
+  });
+  container.appendChild(grid);
+}
 
-    const grid = document.createElement("div");
-    grid.className = "options";
-    PLANS.filter((p) => p.day === day).forEach((plan) => {
-      const article = document.createElement("article");
-      article.className = "card bank-plan-card in" + (plan.tagClass === "epic" ? " epic-card" : "");
-      article.draggable = true;
-      article.dataset.slug = plan.slug;
-      article.innerHTML =
-        '<div class="card-top"><span class="tag' + (plan.tagClass ? " " + plan.tagClass : "") + '">' + plan.tag + "</span>" +
-        '<span class="intensity">' + plan.intensity + "</span></div>" +
-        "<h3>" + plan.title + "</h3>" +
-        "<p>" + plan.description + "</p>" +
-        '<ul class="facts">' + plan.facts.map((f) => "<li>" + f + "</li>").join("") + "</ul>" +
-        '<div class="card-bottom"><a class="btn btn-primary" href="' + plan.href + '" target="_blank" rel="noopener">Ver plan detallado →</a></div>';
-      grid.appendChild(article);
-    });
-    container.appendChild(grid);
+/* ---------- Botón "Añadir a un día" (alternativa a arrastrar) ---------- */
+
+let dayPopover = null;
+let popoverTargetSlug = null;
+
+function buildDayPopover() {
+  const pop = document.createElement("div");
+  pop.className = "day-popover";
+  pop.hidden = true;
+  pop.innerHTML =
+    '<p class="day-popover-title">¿Qué día?</p>' +
+    '<div class="day-popover-options">' +
+    DAYS.map(({ day, label, sub }) =>
+      '<button type="button" data-day="' + day + '">' + label + " · " + sub + "</button>"
+    ).join("") +
+    "</div>";
+  document.body.appendChild(pop);
+  return pop;
+}
+
+function openDayPopover(button, slug) {
+  popoverTargetSlug = slug;
+  dayPopover.hidden = false;
+  const btnRect = button.getBoundingClientRect();
+  const popRect = dayPopover.getBoundingClientRect();
+  let top = btnRect.bottom + 8;
+  let left = btnRect.left;
+  if (left + popRect.width > window.innerWidth - 12) left = window.innerWidth - popRect.width - 12;
+  if (left < 12) left = 12;
+  if (top + popRect.height > window.innerHeight - 12) top = btnRect.top - popRect.height - 8;
+  dayPopover.style.top = top + "px";
+  dayPopover.style.left = left + "px";
+}
+
+function closeDayPopover() {
+  if (!dayPopover) return;
+  dayPopover.hidden = true;
+  popoverTargetSlug = null;
+}
+
+function addPlanToDay(slug, day) {
+  const newItem = { id: uid(), slug };
+  state["day" + day] = state["day" + day] || [];
+  state["day" + day].push(newItem);
+  persistBoard();
+  render();
+  const board = document.querySelector(".itin-board");
+  if (board) board.scrollIntoView({ behavior: "smooth", block: "start" });
+  const newLi = document.querySelector('.itin-item[data-id="' + newItem.id + '"]');
+  if (newLi) {
+    newLi.classList.add("just-added");
+    setTimeout(() => newLi.classList.remove("just-added"), 1500);
   }
 }
 
@@ -204,8 +268,33 @@ function initDragEvents() {
     if (voteBtn) {
       const card = voteBtn.closest(".proposal-card");
       vote(card.dataset.id, voteBtn.dataset.vote);
+      return;
     }
+    const addBtn = e.target.closest(".add-day-btn");
+    if (addBtn) {
+      e.stopPropagation();
+      const slug = addBtn.dataset.slug;
+      if (!dayPopover.hidden && popoverTargetSlug === slug) {
+        closeDayPopover();
+      } else {
+        openDayPopover(addBtn, slug);
+      }
+      return;
+    }
+    const dayChoice = e.target.closest(".day-popover-options button");
+    if (dayChoice) {
+      if (popoverTargetSlug) addPlanToDay(popoverTargetSlug, Number(dayChoice.dataset.day));
+      closeDayPopover();
+      return;
+    }
+    if (dayPopover && !dayPopover.hidden) closeDayPopover();
   });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeDayPopover();
+  });
+  window.addEventListener("scroll", closeDayPopover, true);
+  window.addEventListener("resize", closeDayPopover);
 }
 
 /* ---------- Firebase (compartido entre tablero y propuestas) ---------- */
@@ -421,6 +510,7 @@ function initProposalUI() {
 /* El banco y el tablero se pintan de inmediato con el estado local
    (vacío) para que la página nunca se quede en blanco esperando a
    Firebase; los onSnapshot los repintan en cuanto llega el estado real. */
+dayPopover = buildDayPopover();
 render();
 renderProposals();
 initDragEvents();
