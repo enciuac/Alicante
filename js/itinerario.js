@@ -3,6 +3,10 @@ import { firebaseConfig } from "./firebase-config.js";
 
 const FIREBASE_APP_URL = "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
 const FIREBASE_FIRESTORE_URL = "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+const PERIODS = [
+  { key: "manana", label: "🌅 Mañana" },
+  { key: "tarde", label: "🌇 Tarde" }
+];
 
 const statusEl = document.getElementById("syncStatus");
 const saveStatusEl = document.getElementById("saveStatus");
@@ -18,7 +22,7 @@ const saveCustomBtn = document.getElementById("saveCustomBtn");
 const customStatusEl = document.getElementById("customStatus");
 const customPlansGridEl = document.getElementById("customPlansGrid");
 
-let state = { day1: [], day2: [], day3: [], day4: [], day5: [] };
+let state = emptyState();
 let firebaseReady = false;
 let db = null;
 let boardDocRef = null;
@@ -36,7 +40,33 @@ function uid() {
 }
 
 function emptyState() {
-  return { day1: [], day2: [], day3: [], day4: [], day5: [] };
+  return {
+    day1: { manana: [], tarde: [] },
+    day2: { manana: [], tarde: [] },
+    day3: { manana: [], tarde: [] },
+    day4: { manana: [], tarde: [] },
+    day5: { manana: [], tarde: [] }
+  };
+}
+
+/* Lee los items de una franja soportando el formato antiguo (un array
+   plano por día, de antes de separar mañana/tarde): esos planes se
+   muestran en "Tarde" para no perderlos. */
+function getPeriodItems(dayState, period) {
+  if (Array.isArray(dayState)) return period === "tarde" ? dayState : [];
+  return (dayState && dayState[period]) || [];
+}
+
+/* Igual que getPeriodItems, pero devuelve el array real para poder
+   mutarlo, subiendo de formato antiguo a {manana,tarde} si hace falta. */
+function ensurePeriodArray(day, period) {
+  const key = "day" + day;
+  if (Array.isArray(state[key])) {
+    state[key] = { manana: [], tarde: state[key] };
+  }
+  if (!state[key]) state[key] = { manana: [], tarde: [] };
+  if (!state[key][period]) state[key][period] = [];
+  return state[key][period];
 }
 
 function shuffle(arr) {
@@ -101,39 +131,48 @@ function findPlan(slug) {
 
 /* ---------- Tablero: render ---------- */
 
+function renderItinItem(item, day, period, idx) {
+  const plan = findPlan(item.slug);
+  if (!plan) return null;
+  const li = document.createElement("li");
+  li.className = "itin-item" + (plan.isCustom ? " proposed-item" : "");
+  li.draggable = true;
+  li.dataset.id = item.id;
+  li.dataset.day = day;
+  li.dataset.period = period;
+  li.dataset.index = idx;
+  const titleHtml = plan.href
+    ? '<a class="item-title" href="' + plan.href + '" target="_blank" rel="noopener">' + escapeHtml(plan.title) + "</a>"
+    : '<span class="item-title">' + escapeHtml(plan.title) + "</span>";
+  li.innerHTML =
+    '<div class="row">' +
+    '<span class="tag-mini' + (plan.tagClass ? " " + plan.tagClass : "") + '">' + escapeHtml(plan.tag) + "</span>" +
+    '<button class="remove-btn" data-remove="1" title="Quitar" aria-label="Quitar">✕</button>' +
+    "</div>" +
+    titleHtml +
+    (plan.intensity ? '<span class="item-int">' + plan.intensity + "</span>" : "");
+  return li;
+}
+
 function render() {
   for (const { day } of DAYS) {
-    const list = document.getElementById("list-" + day);
-    if (!list) continue;
-    list.innerHTML = "";
-    const items = state["day" + day] || [];
-    if (!items.length) {
-      const empty = document.createElement("li");
-      empty.className = "itin-empty";
-      empty.textContent = "Arrastra aquí un plan";
-      list.appendChild(empty);
+    const dayState = state["day" + day];
+    for (const { key: period } of PERIODS) {
+      const list = document.getElementById("list-" + day + "-" + period);
+      if (!list) continue;
+      list.innerHTML = "";
+      const items = getPeriodItems(dayState, period);
+      if (!items.length) {
+        const empty = document.createElement("li");
+        empty.className = "itin-empty";
+        empty.textContent = "Arrastra aquí un plan";
+        list.appendChild(empty);
+      }
+      items.forEach((item, idx) => {
+        const li = renderItinItem(item, day, period, idx);
+        if (li) list.appendChild(li);
+      });
     }
-    items.forEach((item, idx) => {
-      const plan = findPlan(item.slug);
-      if (!plan) return;
-      const li = document.createElement("li");
-      li.className = "itin-item" + (plan.isCustom ? " proposed-item" : "");
-      li.draggable = true;
-      li.dataset.id = item.id;
-      li.dataset.day = day;
-      li.dataset.index = idx;
-      const titleHtml = plan.href
-        ? '<a class="item-title" href="' + plan.href + '" target="_blank" rel="noopener">' + escapeHtml(plan.title) + "</a>"
-        : '<span class="item-title">' + escapeHtml(plan.title) + "</span>";
-      li.innerHTML =
-        '<div class="row">' +
-        '<span class="tag-mini' + (plan.tagClass ? " " + plan.tagClass : "") + '">' + escapeHtml(plan.tag) + "</span>" +
-        '<button class="remove-btn" data-remove="1" title="Quitar del día" aria-label="Quitar">✕</button>' +
-        "</div>" +
-        titleHtml +
-        (plan.intensity ? '<span class="item-int">' + plan.intensity + "</span>" : "");
-      list.appendChild(li);
-    });
   }
   renderBank();
   renderCustomPlans();
@@ -295,10 +334,14 @@ function buildDayPopover() {
   pop.className = "day-popover";
   pop.hidden = true;
   pop.innerHTML =
-    '<p class="day-popover-title">¿Qué día?</p>' +
+    '<p class="day-popover-title">¿Qué día y qué franja?</p>' +
     '<div class="day-popover-options">' +
     DAYS.map(({ day, label, sub }) =>
-      '<button type="button" data-day="' + day + '">' + label + " · " + sub + "</button>"
+      '<div class="day-popover-row">' +
+      '<span class="day-popover-daylabel">' + label + " · " + sub + "</span>" +
+      '<button type="button" data-day="' + day + '" data-period="manana" title="Mañana">🌅</button>' +
+      '<button type="button" data-day="' + day + '" data-period="tarde" title="Tarde">🌇</button>' +
+      "</div>"
     ).join("") +
     "</div>";
   document.body.appendChild(pop);
@@ -325,10 +368,9 @@ function closeDayPopover() {
   popoverTargetSlug = null;
 }
 
-function addPlanToDay(slug, day) {
+function addPlanToDay(slug, day, period) {
   const newItem = { id: uid(), slug };
-  state["day" + day] = state["day" + day] || [];
-  state["day" + day].push(newItem);
+  ensurePeriodArray(day, period).push(newItem);
   persistBoard();
   render();
   const board = document.querySelector(".itin-board");
@@ -364,7 +406,12 @@ function initDragEvents() {
     if (bankCard) {
       dragInfo = { slug: bankCard.dataset.slug, from: "bank" };
     } else if (itinItem) {
-      dragInfo = { id: itinItem.dataset.id, from: "day", fromDay: Number(itinItem.dataset.day) };
+      dragInfo = {
+        id: itinItem.dataset.id,
+        from: "day",
+        fromDay: Number(itinItem.dataset.day),
+        fromPeriod: itinItem.dataset.period
+      };
       itinItem.classList.add("dragging");
     } else {
       dragInfo = null;
@@ -392,23 +439,21 @@ function initDragEvents() {
       list.classList.remove("drag-over");
       if (!dragInfo) return;
       const day = Number(list.dataset.day);
+      const period = list.dataset.period;
+      const targetArr = ensurePeriodArray(day, period);
       const afterEl = getDragAfterElement(list, e.clientY);
-      const insertIndex = afterEl ? Number(afterEl.dataset.index) : (state["day" + day] || []).length;
+      const insertIndex = afterEl ? Number(afterEl.dataset.index) : targetArr.length;
 
       if (dragInfo.from === "bank") {
-        const newItem = { id: uid(), slug: dragInfo.slug };
-        state["day" + day] = state["day" + day] || [];
-        state["day" + day].splice(insertIndex, 0, newItem);
+        targetArr.splice(insertIndex, 0, { id: uid(), slug: dragInfo.slug });
       } else if (dragInfo.from === "day") {
-        const fromDay = dragInfo.fromDay;
-        const fromArr = state["day" + fromDay] || [];
+        const fromArr = ensurePeriodArray(dragInfo.fromDay, dragInfo.fromPeriod);
         const srcIdx = fromArr.findIndex((it) => it.id === dragInfo.id);
         if (srcIdx === -1) return;
         const [moved] = fromArr.splice(srcIdx, 1);
         let idx = insertIndex;
-        if (fromDay === day && srcIdx < idx) idx -= 1;
-        state["day" + day] = state["day" + day] || [];
-        state["day" + day].splice(idx, 0, moved);
+        if (dragInfo.fromDay === day && dragInfo.fromPeriod === period && srcIdx < idx) idx -= 1;
+        targetArr.splice(idx, 0, moved);
       }
       persistBoard();
       render();
@@ -420,8 +465,11 @@ function initDragEvents() {
     if (removeBtn) {
       const li = removeBtn.closest(".itin-item");
       const day = Number(li.dataset.day);
+      const period = li.dataset.period;
       const id = li.dataset.id;
-      state["day" + day] = (state["day" + day] || []).filter((it) => it.id !== id);
+      const arr = ensurePeriodArray(day, period);
+      const idx = arr.findIndex((it) => it.id === id);
+      if (idx !== -1) arr.splice(idx, 1);
       persistBoard();
       render();
       return;
@@ -456,7 +504,7 @@ function initDragEvents() {
     }
     const dayChoice = e.target.closest(".day-popover-options button");
     if (dayChoice) {
-      if (popoverTargetSlug) addPlanToDay(popoverTargetSlug, Number(dayChoice.dataset.day));
+      if (popoverTargetSlug) addPlanToDay(popoverTargetSlug, Number(dayChoice.dataset.day), dayChoice.dataset.period);
       closeDayPopover();
       return;
     }
@@ -543,8 +591,9 @@ async function subscribeBoard() {
 
 /* ---------- Propuestas: guardar, listar y votar ---------- */
 
-function proposalDayItems(itinerary, day) {
-  const items = (itinerary && itinerary["day" + day]) || [];
+function proposalPeriodItems(itinerary, day, period) {
+  const dayState = itinerary && itinerary["day" + day];
+  const items = getPeriodItems(dayState, period);
   return items.map((it) => findPlan(it.slug)).filter(Boolean);
 }
 
@@ -566,29 +615,36 @@ function renderProposals() {
     return;
   }
   const voterId = getVoterId();
-  const sorted = [...proposals].sort((a, b) => {
-    const scoreA = countVotes(a.votes, "like") - countVotes(a.votes, "dislike");
-    const scoreB = countVotes(b.votes, "like") - countVotes(b.votes, "dislike");
-    return scoreB - scoreA;
-  });
+  const score = (p) => countVotes(p.votes, "like") - countVotes(p.votes, "dislike");
+  const sorted = [...proposals].sort((a, b) => score(b) - score(a));
 
-  sorted.forEach((p) => {
+  /* Solo se destaca cuando hay un líder claro (puntúa más que la
+     segunda y por encima de 0): con empate, nadie se corona. */
+  const topScore = sorted.length ? score(sorted[0]) : 0;
+  const secondScore = sorted.length > 1 ? score(sorted[1]) : -Infinity;
+  const hasLeader = sorted.length > 0 && topScore > 0 && topScore > secondScore;
+
+  sorted.forEach((p, i) => {
     const card = document.createElement("div");
-    card.className = "proposal-card";
+    card.className = "proposal-card" + (hasLeader && i === 0 ? " featured" : "");
     card.dataset.id = p.id;
     const myVote = p.votes ? p.votes[voterId] : undefined;
     const likeCount = countVotes(p.votes, "like");
     const dislikeCount = countVotes(p.votes, "dislike");
 
     const daysHtml = DAYS.map(({ day, label }) => {
-      const plans = proposalDayItems(p.itinerary, day);
-      const list = plans.length
-        ? plans.map((pl) => "<li>" + escapeHtml(pl.title) + "</li>").join("")
-        : '<li class="pd-empty">—</li>';
-      return '<div class="proposal-day"><span class="pd-label">' + label + '</span><ul>' + list + "</ul></div>";
+      const periodsHtml = PERIODS.map(({ key: period, label: periodLabel }) => {
+        const plans = proposalPeriodItems(p.itinerary, day, period);
+        const list = plans.length
+          ? plans.map((pl) => "<li>" + escapeHtml(pl.title) + "</li>").join("")
+          : '<li class="pd-empty">—</li>';
+        return '<div class="pd-period"><span class="pd-period-label">' + periodLabel + '</span><ul>' + list + "</ul></div>";
+      }).join("");
+      return '<div class="proposal-day"><span class="pd-label">' + label + "</span>" + periodsHtml + "</div>";
     }).join("");
 
     card.innerHTML =
+      (hasLeader && i === 0 ? '<span class="featured-badge">🏆 Más votada</span>' : "") +
       '<div class="proposal-head"><h3>' + escapeHtml(p.name) + '</h3><span class="proposal-date">' + formatDate(p.createdAt) +
       '</span><button class="delete-btn" data-delete-proposal="1" title="Borrar propuesta" aria-label="Borrar">✕</button></div>' +
       '<div class="proposal-days">' + daysHtml + "</div>" +
@@ -630,6 +686,10 @@ async function deleteProposal(proposalId) {
   }
 }
 
+/* El 👍 es un recurso único por persona: solo puede tener una
+   propuesta con "like" a la vez (para dificultar los empates). El 👎
+   es libre: se puede votar negativo en tantas propuestas como se
+   quiera, independientemente unas de otras. */
 async function vote(proposalId, choice) {
   const firestoreMod = await initFirebase();
   if (!firestoreMod || !db) return;
@@ -642,9 +702,15 @@ async function vote(proposalId, choice) {
   try {
     if (current === choice) {
       await firestoreMod.updateDoc(ref, { [field]: firestoreMod.deleteField() });
-    } else {
-      await firestoreMod.updateDoc(ref, { [field]: choice });
+      return;
     }
+    if (choice === "like") {
+      const otherLiked = proposals.find((p) => p.id !== proposalId && p.votes && p.votes[voterId] === "like");
+      if (otherLiked) {
+        await firestoreMod.updateDoc(firestoreMod.doc(db, "propuestas", otherLiked.id), { [field]: firestoreMod.deleteField() });
+      }
+    }
+    await firestoreMod.updateDoc(ref, { [field]: choice });
   } catch (err) {
     console.error("Error al votar", err);
   }

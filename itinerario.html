@@ -17,7 +17,7 @@
   <a class="back" href="index.html">← Volver al itinerario base</a>
   <p class="plan-eyebrow">Arrastra y suelta · guarda tu propuesta · vota la del grupo</p>
   <h1>Vuestro itinerario personalizado</h1>
-  <p class="lede">Arrastrad cualquier plan del banco a un día para añadirlo, reordenad dentro de cada columna y quitad los que no os convenzan. Cuando quede a vuestro gusto, guardadlo como propuesta con vuestro nombre para que el grupo la vote y así elegir el itinerario final.</p>
+  <p class="lede">Arrastrad cualquier plan del banco a la mañana o la tarde de un día para añadirlo, reordenad dentro de cada franja y quitad los que no os convenzan. Cuando quede a vuestro gusto, guardadlo como propuesta con vuestro nombre para que el grupo la vote y así elegir el itinerario final.</p>
   <p class="sync-status" id="syncStatus">Conectando…</p>
 </header>
 
@@ -26,23 +26,28 @@
   <section class="itin-board">
     <div class="itin-col" data-day="1">
       <div class="itin-col-head"><span class="d">MIÉ 12</span><span class="l">Llegada</span></div>
-      <ul class="itin-list" data-day="1" id="list-1"></ul>
+      <div class="itin-period"><span class="period-label">🌅 Mañana</span><ul class="itin-list" data-day="1" data-period="manana" id="list-1-manana"></ul></div>
+      <div class="itin-period"><span class="period-label">🌇 Tarde</span><ul class="itin-list" data-day="1" data-period="tarde" id="list-1-tarde"></ul></div>
     </div>
     <div class="itin-col" data-day="2">
       <div class="itin-col-head"><span class="d">JUE 13</span><span class="l">Mar</span></div>
-      <ul class="itin-list" data-day="2" id="list-2"></ul>
+      <div class="itin-period"><span class="period-label">🌅 Mañana</span><ul class="itin-list" data-day="2" data-period="manana" id="list-2-manana"></ul></div>
+      <div class="itin-period"><span class="period-label">🌇 Tarde</span><ul class="itin-list" data-day="2" data-period="tarde" id="list-2-tarde"></ul></div>
     </div>
     <div class="itin-col" data-day="3">
       <div class="itin-col-head"><span class="d">VIE 14</span><span class="l">Montaña</span></div>
-      <ul class="itin-list" data-day="3" id="list-3"></ul>
+      <div class="itin-period"><span class="period-label">🌅 Mañana</span><ul class="itin-list" data-day="3" data-period="manana" id="list-3-manana"></ul></div>
+      <div class="itin-period"><span class="period-label">🌇 Tarde</span><ul class="itin-list" data-day="3" data-period="tarde" id="list-3-tarde"></ul></div>
     </div>
     <div class="itin-col" data-day="4">
       <div class="itin-col-head"><span class="d">SÁB 15</span><span class="l">Fiesta</span></div>
-      <ul class="itin-list" data-day="4" id="list-4"></ul>
+      <div class="itin-period"><span class="period-label">🌅 Mañana</span><ul class="itin-list" data-day="4" data-period="manana" id="list-4-manana"></ul></div>
+      <div class="itin-period"><span class="period-label">🌇 Tarde</span><ul class="itin-list" data-day="4" data-period="tarde" id="list-4-tarde"></ul></div>
     </div>
     <div class="itin-col" data-day="5">
       <div class="itin-col-head"><span class="d">DOM 16</span><span class="l">Despedida</span></div>
-      <ul class="itin-list" data-day="5" id="list-5"></ul>
+      <div class="itin-period"><span class="period-label">🌅 Mañana</span><ul class="itin-list" data-day="5" data-period="manana" id="list-5-manana"></ul></div>
+      <div class="itin-period"><span class="period-label">🌇 Tarde</span><ul class="itin-list" data-day="5" data-period="tarde" id="list-5-tarde"></ul></div>
     </div>
   </section>
 
@@ -59,7 +64,7 @@
 
   <section class="itin-proposals">
     <h2>Propuestas del grupo</h2>
-    <p class="hint">Votad con 👍 o 👎 las propuestas guardadas para ayudar a elegir el itinerario final.</p>
+    <p class="hint">Votad con 👍 o 👎 las propuestas guardadas para ayudar a elegir el itinerario final. El 👍 es único: solo podéis dárselo a una propuesta a la vez (cambiarlo de sitio se lo quita a la anterior). El 👎 es libre, podéis ponerlo en tantas como queráis.</p>
     <div class="proposals-list" id="proposalsList"></div>
   </section>
 
