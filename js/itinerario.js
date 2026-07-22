@@ -595,7 +595,8 @@ function renderProposals() {
       '<div class="vote-row">' +
       '<button class="vote-btn like' + (myVote === "like" ? " active" : "") + '" data-vote="like">👍 <span>' + likeCount + "</span></button>" +
       '<button class="vote-btn dislike' + (myVote === "dislike" ? " active" : "") + '" data-vote="dislike">👎 <span>' + dislikeCount + "</span></button>" +
-      "</div>";
+      "</div>" +
+      '<a class="btn btn-ghost view-proposal-btn" href="propuesta.html?id=' + encodeURIComponent(p.id) + '" target="_blank" rel="noopener">Ver propuesta →</a>';
     proposalsListEl.appendChild(card);
   });
 }

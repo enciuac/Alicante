@@ -237,6 +237,29 @@ footer{background:var(--deep);color:rgba(247,239,223,.5);text-align:center;paddi
 .plan-section h2::before{content:"";width:30px;height:3px;background:var(--turq);border-radius:2px}
 .plan-section > p{margin-bottom:12px;color:#22394B;max-width:70ch}
 
+/* ---- página de propuesta (propuesta.html) ---- */
+.prop-loading{color:#3A566A;font-size:.95rem}
+.prop-day-empty{color:rgba(6,42,68,.45);font-size:.92rem;font-style:italic}
+.prop-day-plans{display:grid;gap:16px}
+.prop-plan-card{
+  background:var(--white);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;
+  display:grid;grid-template-columns:220px 1fr;border:2px solid transparent;
+}
+.prop-plan-card.proposed-plan-card{border-color:rgba(255,217,142,.9);background:linear-gradient(175deg,#FFF9E9 0%,var(--white) 55%)}
+.prop-plan-photo{width:100%;height:100%;object-fit:cover;display:block;min-height:160px}
+.prop-plan-photo-empty{
+  display:flex;align-items:center;justify-content:center;font-size:2.4rem;
+  background:linear-gradient(160deg,#FFF3D6,#FFE9B8);min-height:160px;
+}
+.prop-plan-info{padding:20px 22px;display:flex;flex-direction:column;gap:8px}
+.prop-plan-info h3{font-family:var(--display);font-weight:700;font-size:1.1rem}
+.prop-plan-info p{color:#2C4557;font-size:.92rem}
+.prop-plan-info .btn{width:auto;align-self:flex-start;margin-top:4px}
+@media (max-width:640px){
+  .prop-plan-card{grid-template-columns:1fr}
+  .prop-plan-photo,.prop-plan-photo-empty{min-height:180px}
+}
+
 /* timeline */
 .timeline{list-style:none;display:grid;gap:0;position:relative;padding-left:6px}
 .timeline li{position:relative;padding:0 0 22px 34px}
