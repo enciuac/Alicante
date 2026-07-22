@@ -7,11 +7,13 @@ const FIREBASE_FIRESTORE_URL = "https://www.gstatic.com/firebasejs/10.13.2/fireb
 const statusEl = document.getElementById("syncStatus");
 const saveStatusEl = document.getElementById("saveStatus");
 const nameInput = document.getElementById("proposalName");
+const passwordInput = document.getElementById("proposalPassword");
 const saveBtn = document.getElementById("saveProposalBtn");
 const proposalsListEl = document.getElementById("proposalsList");
 const customTitleInput = document.getElementById("customTitle");
 const customAuthorInput = document.getElementById("customAuthor");
 const customDetailsInput = document.getElementById("customDetails");
+const customPasswordInput = document.getElementById("customPassword");
 const saveCustomBtn = document.getElementById("saveCustomBtn");
 const customStatusEl = document.getElementById("customStatus");
 const customPlansGridEl = document.getElementById("customPlansGrid");
@@ -58,6 +60,16 @@ function getVoterId() {
     localStorage.setItem(VOTER_KEY, id);
   }
   return id;
+}
+
+/* Hash simple (SHA-256) para no guardar la contraseña en texto plano.
+   Es solo protección anti-despiste entre el grupo, no seguridad real:
+   las reglas de Firestore siguen abiertas y esto se comprueba en el
+   propio navegador, no en un servidor. */
+async function hashPassword(pw) {
+  const data = new TextEncoder().encode(pw);
+  const buf = await crypto.subtle.digest("SHA-256", data);
+  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 function escapeHtml(str) {
@@ -173,7 +185,8 @@ function renderCustomPlans() {
     article.draggable = true;
     article.dataset.slug = plan.id;
     article.innerHTML =
-      '<div class="card-top"><span class="tag proposed">Propuesta de ' + escapeHtml(plan.author) + "</span></div>" +
+      '<div class="card-top"><span class="tag proposed">Propuesta de ' + escapeHtml(plan.author) + "</span>" +
+      '<button class="delete-btn" data-delete-custom="1" data-id="' + plan.id + '" title="Borrar propuesta de plan" aria-label="Borrar">✕</button></div>' +
       "<h3>" + escapeHtml(plan.title) + "</h3>" +
       "<p>" + escapeHtml(plan.details) + "</p>" +
       '<div class="card-bottom">' +
@@ -187,8 +200,9 @@ async function saveCustomPlan() {
   const title = customTitleInput.value.trim();
   const author = customAuthorInput.value.trim();
   const details = customDetailsInput.value.trim();
-  if (!title || !author || !details) {
-    customStatusEl.textContent = "Rellena nombre del plan, tu nombre y los detalles.";
+  const password = customPasswordInput.value;
+  if (!title || !author || !details || !password) {
+    customStatusEl.textContent = "Rellena nombre del plan, tu nombre, los detalles y una contraseña.";
     return;
   }
   localStorage.setItem(NAME_KEY, author);
@@ -200,20 +214,47 @@ async function saveCustomPlan() {
   saveCustomBtn.disabled = true;
   customStatusEl.textContent = "Guardando…";
   try {
+    const passwordHash = await hashPassword(password);
     await firestoreMod.addDoc(firestoreMod.collection(db, "planes-propuestos"), {
       title,
       author,
       details,
+      passwordHash,
       createdAt: firestoreMod.serverTimestamp()
     });
     customStatusEl.textContent = "✓ Plan propuesto guardado";
     customTitleInput.value = "";
     customDetailsInput.value = "";
+    customPasswordInput.value = "";
   } catch (err) {
     console.error("Error guardando el plan propuesto", err);
     customStatusEl.textContent = "⚠️ No se pudo guardar — revisad la conexión";
   } finally {
     saveCustomBtn.disabled = false;
+  }
+}
+
+async function deleteCustomPlan(planId) {
+  const plan = customPlans.find((p) => p.id === planId);
+  if (!plan) return;
+  if (!plan.passwordHash) {
+    // Guardada antes de añadir la protección por contraseña: no se puede exigir.
+    if (!confirm("Esta propuesta de plan no tiene contraseña (se guardó antes de añadir esa protección). ¿Borrarla de todas formas?")) return;
+  } else {
+    const pw = prompt("Contraseña para borrar la propuesta de plan \"" + plan.title + "\":");
+    if (pw === null) return; // cancelado
+    const hash = await hashPassword(pw);
+    if (hash !== plan.passwordHash) {
+      alert("Contraseña incorrecta. No se ha borrado el plan propuesto.");
+      return;
+    }
+  }
+  const firestoreMod = await initFirebase();
+  if (!firestoreMod || !db) return;
+  try {
+    await firestoreMod.deleteDoc(firestoreMod.doc(db, "planes-propuestos", planId));
+  } catch (err) {
+    console.error("Error borrando el plan propuesto", err);
   }
 }
 
@@ -391,6 +432,17 @@ function initDragEvents() {
       vote(card.dataset.id, voteBtn.dataset.vote);
       return;
     }
+    const deleteProposalBtn = e.target.closest("[data-delete-proposal]");
+    if (deleteProposalBtn) {
+      const card = deleteProposalBtn.closest(".proposal-card");
+      deleteProposal(card.dataset.id);
+      return;
+    }
+    const deleteCustomBtn = e.target.closest("[data-delete-custom]");
+    if (deleteCustomBtn) {
+      deleteCustomPlan(deleteCustomBtn.dataset.id);
+      return;
+    }
     const addBtn = e.target.closest(".add-day-btn");
     if (addBtn) {
       e.stopPropagation();
@@ -537,7 +589,8 @@ function renderProposals() {
     }).join("");
 
     card.innerHTML =
-      '<div class="proposal-head"><h3>' + escapeHtml(p.name) + '</h3><span class="proposal-date">' + formatDate(p.createdAt) + "</span></div>" +
+      '<div class="proposal-head"><h3>' + escapeHtml(p.name) + '</h3><span class="proposal-date">' + formatDate(p.createdAt) +
+      '</span><button class="delete-btn" data-delete-proposal="1" title="Borrar propuesta" aria-label="Borrar">✕</button></div>' +
       '<div class="proposal-days">' + daysHtml + "</div>" +
       '<div class="vote-row">' +
       '<button class="vote-btn like' + (myVote === "like" ? " active" : "") + '" data-vote="like">👍 <span>' + likeCount + "</span></button>" +
@@ -550,6 +603,30 @@ function renderProposals() {
 function countVotes(votes, choice) {
   if (!votes) return 0;
   return Object.values(votes).filter((v) => v === choice).length;
+}
+
+async function deleteProposal(proposalId) {
+  const proposal = proposals.find((p) => p.id === proposalId);
+  if (!proposal) return;
+  if (!proposal.passwordHash) {
+    // Guardada antes de añadir la protección por contraseña: no se puede exigir.
+    if (!confirm("Esta propuesta no tiene contraseña (se guardó antes de añadir esa protección). ¿Borrarla de todas formas?")) return;
+  } else {
+    const pw = prompt("Contraseña para borrar la propuesta \"" + proposal.name + "\":");
+    if (pw === null) return; // cancelado
+    const hash = await hashPassword(pw);
+    if (hash !== proposal.passwordHash) {
+      alert("Contraseña incorrecta. No se ha borrado la propuesta.");
+      return;
+    }
+  }
+  const firestoreMod = await initFirebase();
+  if (!firestoreMod || !db) return;
+  try {
+    await firestoreMod.deleteDoc(firestoreMod.doc(db, "propuestas", proposalId));
+  } catch (err) {
+    console.error("Error borrando la propuesta", err);
+  }
 }
 
 async function vote(proposalId, choice) {
@@ -590,9 +667,10 @@ async function subscribeProposals() {
 
 async function saveProposal() {
   const name = nameInput.value.trim();
-  if (!name) {
-    saveStatusEl.textContent = "Escribe tu nombre antes de guardar.";
-    nameInput.focus();
+  const password = passwordInput.value;
+  if (!name || !password) {
+    saveStatusEl.textContent = "Escribe tu nombre y una contraseña antes de guardar.";
+    (name ? passwordInput : nameInput).focus();
     return;
   }
   localStorage.setItem(NAME_KEY, name);
@@ -604,13 +682,16 @@ async function saveProposal() {
   saveBtn.disabled = true;
   saveStatusEl.textContent = "Guardando…";
   try {
+    const passwordHash = await hashPassword(password);
     await firestoreMod.addDoc(firestoreMod.collection(db, "propuestas"), {
       name,
       itinerary: state,
       votes: {},
+      passwordHash,
       createdAt: firestoreMod.serverTimestamp()
     });
     saveStatusEl.textContent = "✓ Propuesta guardada como \"" + name + "\"";
+    passwordInput.value = "";
   } catch (err) {
     console.error("Error guardando la propuesta", err);
     saveStatusEl.textContent = "⚠️ No se pudo guardar la propuesta — revisad la conexión";

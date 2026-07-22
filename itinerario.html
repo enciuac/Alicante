@@ -48,9 +48,10 @@
 
   <section class="itin-save">
     <h2>Guarda tu propuesta</h2>
-    <p class="hint">Cuando el tablero de arriba tenga el orden que te gusta, guárdalo con tu nombre para que el grupo pueda votarlo.</p>
+    <p class="hint">Cuando el tablero de arriba tenga el orden que te gusta, guárdalo con tu nombre para que el grupo pueda votarlo. Pon también una contraseña: solo con ella podrás borrarla luego (para que nadie la borre sin querer).</p>
     <div class="save-row">
       <input type="text" id="proposalName" placeholder="Tu nombre" maxlength="40" autocomplete="name">
+      <input type="password" id="proposalPassword" placeholder="Contraseña para borrarla luego" maxlength="60" autocomplete="new-password">
       <button class="btn btn-primary" id="saveProposalBtn" type="button">Guardar esta propuesta</button>
     </div>
     <p class="save-status" id="saveStatus"></p>
@@ -64,11 +65,12 @@
 
   <section class="itin-custom">
     <h2>Propón un plan</h2>
-    <p class="hint">¿Se os ocurre un plan que no está en la lista? Añadidlo aquí: aparecerá como tarjeta para arrastrar igual que las demás, en otro color para que se note que es una propuesta vuestra.</p>
+    <p class="hint">¿Se os ocurre un plan que no está en la lista? Añadidlo aquí: aparecerá como tarjeta para arrastrar igual que las demás, en otro color para que se note que es una propuesta vuestra. Pon también una contraseña: solo con ella podrás borrarla luego.</p>
     <div class="custom-form">
       <input type="text" id="customTitle" placeholder="Nombre del plan" maxlength="60">
       <input type="text" id="customAuthor" placeholder="Tu nombre" maxlength="40">
       <textarea id="customDetails" placeholder="Detalles del plan" maxlength="600" rows="3"></textarea>
+      <input type="password" id="customPassword" placeholder="Contraseña para borrarla luego" maxlength="60" autocomplete="new-password">
       <button class="btn btn-primary" id="saveCustomBtn" type="button">Guardar propuesta de plan</button>
     </div>
     <p class="save-status" id="customStatus"></p>

@@ -353,6 +353,11 @@ footer{background:var(--deep);color:rgba(247,239,223,.5);text-align:center;paddi
   border-radius:6px;flex-shrink:0;
 }
 .remove-btn:hover{background:rgba(255,107,87,.14);color:var(--coral)}
+.delete-btn{
+  background:none;border:none;cursor:pointer;color:#8AA;font-size:.85rem;line-height:1;padding:2px 4px;
+  border-radius:6px;flex-shrink:0;
+}
+.delete-btn:hover{background:rgba(255,107,87,.14);color:var(--coral)}
 
 .tag-mini{
   font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;font-weight:700;
@@ -418,7 +423,8 @@ footer{background:var(--deep);color:rgba(247,239,223,.5);text-align:center;paddi
   background:var(--white);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px 20px;
   display:flex;flex-direction:column;gap:12px;
 }
-.proposal-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.proposal-head{display:flex;align-items:baseline;gap:8px}
+.proposal-head .delete-btn{margin-left:auto}
 .proposal-head h3{font-family:var(--display);font-weight:700;font-size:1.05rem;color:var(--sea)}
 .proposal-date{font-size:.72rem;color:rgba(6,42,68,.45);white-space:nowrap}
 .proposal-days{display:grid;gap:6px;font-size:.8rem}
