@@ -9,14 +9,15 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300..800&family=Instrument+Sans:ital,wght@0,400..700;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/styles.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27><text y=%27.9em%27 font-size=%2790%27>🌊</text></svg>">
 </head>
 <body>
 
 <header class="plan-hero">
   <a class="back" href="index.html">← Volver al itinerario base</a>
-  <p class="plan-eyebrow">Arrastra y suelta · se guarda para los 4</p>
+  <p class="plan-eyebrow">Arrastra y suelta · guarda tu propuesta · vota la del grupo</p>
   <h1>Vuestro itinerario personalizado</h1>
-  <p class="lede">Arrastrad cualquier plan del banco a un día para añadirlo, reordenad dentro de cada columna según el orden en que queráis hacerlo, y quitad los que no os convenzan. Los cambios se guardan solos y los ve todo el grupo.</p>
+  <p class="lede">Arrastrad cualquier plan del banco a un día para añadirlo, reordenad dentro de cada columna y quitad los que no os convenzan. Cuando quede a vuestro gusto, guardadlo como propuesta con vuestro nombre para que el grupo la vote y así elegir el itinerario final.</p>
   <p class="sync-status" id="syncStatus">Conectando…</p>
 </header>
 
@@ -43,6 +44,22 @@
       <div class="itin-col-head"><span class="d">DOM 16</span><span class="l">Despedida</span></div>
       <ul class="itin-list" data-day="5" id="list-5"></ul>
     </div>
+  </section>
+
+  <section class="itin-save">
+    <h2>Guarda tu propuesta</h2>
+    <p class="hint">Cuando el tablero de arriba tenga el orden que te gusta, guárdalo con tu nombre para que el grupo pueda votarlo.</p>
+    <div class="save-row">
+      <input type="text" id="proposalName" placeholder="Tu nombre" maxlength="40" autocomplete="name">
+      <button class="btn btn-primary" id="saveProposalBtn" type="button">Guardar esta propuesta</button>
+    </div>
+    <p class="save-status" id="saveStatus"></p>
+  </section>
+
+  <section class="itin-proposals">
+    <h2>Propuestas del grupo</h2>
+    <p class="hint">Votad con 👍 o 👎 las propuestas guardadas para ayudar a elegir el itinerario final.</p>
+    <div class="proposals-list" id="proposalsList"></div>
   </section>
 
   <section class="itin-bank">

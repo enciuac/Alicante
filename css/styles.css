@@ -360,22 +360,62 @@ footer{background:var(--deep);color:rgba(247,239,223,.5);text-align:center;paddi
 .tag-mini.adrenalina{background:#FFD9D3;color:#B3311F}
 .tag-mini.epic{background:linear-gradient(120deg,#0E7A6E,#2FB3A6);color:#fff}
 
-.itin-bank{margin-top:44px}
-.itin-bank h2{
+.itin-bank,.itin-save,.itin-proposals{margin-top:44px}
+.itin-bank h2,.itin-save h2,.itin-proposals h2{
   font-family:var(--display);font-weight:700;font-size:clamp(1.2rem,3vw,1.5rem);
   margin-bottom:6px;display:flex;align-items:center;gap:12px;
 }
-.itin-bank h2::before{content:"";width:30px;height:3px;background:var(--turq);border-radius:2px}
-.itin-bank .hint{font-size:.88rem;color:#3A566A;margin-bottom:20px}
-.bank-group{margin-bottom:20px}
-.bank-group h3{font-family:var(--display);font-weight:700;font-size:.95rem;color:var(--sea);margin-bottom:10px}
-.bank-chips{display:flex;flex-wrap:wrap;gap:10px}
-.bank-chip{
-  background:var(--white);border-radius:12px;box-shadow:var(--shadow);padding:9px 13px;
-  display:flex;align-items:center;gap:8px;font-size:.82rem;cursor:grab;border:2px solid transparent;
-  max-width:280px;
-}
-.bank-chip:hover{border-color:var(--turq-soft)}
-.bank-chip .chip-title{font-weight:600;color:var(--ink)}
+.itin-bank h2::before,.itin-save h2::before,.itin-proposals h2::before{content:"";width:30px;height:3px;background:var(--turq);border-radius:2px}
+.itin-bank .hint,.itin-save .hint,.itin-proposals .hint{font-size:.88rem;color:#3A566A;margin-bottom:20px}
+.bank-day-title{font-family:var(--display);font-weight:700;font-size:1rem;color:var(--sea);margin:28px 0 14px}
+.bank-day-title:first-child{margin-top:0}
+.bank-plan-card{cursor:grab}
+.bank-plan-card:active{cursor:grabbing}
 
-.cta-itin{display:inline-flex;align-items:center;gap:6px}
+/* ---- guardar propuesta ---- */
+.save-row{display:flex;gap:10px;flex-wrap:wrap}
+.save-row input{
+  flex:1 1 220px;padding:12px 16px;border-radius:12px;border:1.5px solid rgba(6,42,68,.18);
+  font-family:var(--body);font-size:.92rem;background:var(--white);color:var(--ink);
+}
+.save-row input:focus{outline:none;border-color:var(--turq)}
+.save-row .btn{width:auto;flex:0 0 auto}
+.save-status{margin-top:10px;font-size:.85rem;color:var(--sea);font-weight:600;min-height:1.2em}
+
+/* ---- propuestas del grupo ---- */
+.proposals-list{display:grid;gap:16px;grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}
+.proposals-empty{font-size:.88rem;color:rgba(6,42,68,.45);grid-column:1/-1}
+.proposal-card{
+  background:var(--white);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px 20px;
+  display:flex;flex-direction:column;gap:12px;
+}
+.proposal-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.proposal-head h3{font-family:var(--display);font-weight:700;font-size:1.05rem;color:var(--sea)}
+.proposal-date{font-size:.72rem;color:rgba(6,42,68,.45);white-space:nowrap}
+.proposal-days{display:grid;gap:6px;font-size:.8rem}
+.proposal-day{display:flex;gap:8px;align-items:flex-start}
+.proposal-day .pd-label{flex:0 0 46px;font-weight:700;color:var(--sea);font-size:.68rem;letter-spacing:.06em;padding-top:2px}
+.proposal-day ul{list-style:none;display:flex;flex-direction:column;gap:2px;color:#3A566A}
+.proposal-day .pd-empty{color:rgba(6,42,68,.35);font-style:italic}
+.vote-row{display:flex;gap:10px;margin-top:auto;padding-top:6px;border-top:1px dashed rgba(6,42,68,.14)}
+.vote-btn{
+  flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  background:var(--sand-deep);border:2px solid transparent;border-radius:10px;padding:8px 10px;
+  font-weight:700;font-size:.85rem;cursor:pointer;transition:.2s;color:var(--ink);
+}
+.vote-btn:hover{border-color:var(--turq-soft)}
+.vote-btn.active{background:var(--turq-soft);border-color:var(--turq);color:var(--sea)}
+.vote-btn.dislike.active{background:#FFD9D3;border-color:#FF6B57;color:#B3311F}
+
+/* ---- botón flotante ---- */
+.fab-itin{
+  position:fixed;right:22px;bottom:22px;z-index:100;display:inline-flex;align-items:center;gap:8px;
+  background:var(--sea);color:var(--white);text-decoration:none;padding:14px 20px;border-radius:999px;
+  box-shadow:0 10px 30px rgba(6,42,68,.35);font-weight:700;font-size:.88rem;letter-spacing:.02em;
+  transition:.25s;
+}
+.fab-itin:hover{background:var(--deep);transform:translateY(-2px)}
+@media (max-width:560px){
+  .fab-itin{right:14px;bottom:14px;padding:12px 16px;font-size:.8rem}
+  .proposals-list{grid-template-columns:1fr}
+}
