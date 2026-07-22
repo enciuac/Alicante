@@ -81,8 +81,7 @@ a{color:inherit}
 .pick-label::before{content:"";width:26px;height:2px;background:var(--turq)}
 
 /* ================= CARDS ================= */
-.options{display:grid;gap:16px;grid-template-columns:repeat(4,1fr)}
-@media (max-width:1024px){.options{grid-template-columns:repeat(2,1fr)}}
+.options{display:grid;gap:16px;grid-template-columns:repeat(2,1fr)}
 @media (max-width:560px){.options{grid-template-columns:1fr}}
 .card{
   background:var(--white);border-radius:var(--radius);box-shadow:var(--shadow);
