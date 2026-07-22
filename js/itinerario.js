@@ -226,6 +226,10 @@ async function subscribeCustomPlans() {
     (snap) => {
       customPlans = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
       render();
+      /* Las propuestas de itinerario guardadas también pueden referenciar
+         un plan propuesto: si esta lista llega después de haberlas
+         pintado, hay que repintarlas para que dejen de mostrar "—". */
+      renderProposals();
     },
     (err) => {
       console.error("Error cargando planes propuestos", err);
