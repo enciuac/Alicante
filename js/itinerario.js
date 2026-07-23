@@ -319,6 +319,7 @@ async function subscribeCustomPlans() {
          un plan propuesto: si esta lista llega después de haberlas
          pintado, hay que repintarlas para que dejen de mostrar "—". */
       renderProposals();
+      renderPlanRanking();
     },
     (err) => {
       console.error("Error cargando planes propuestos", err);
@@ -603,6 +604,59 @@ function proposalPeriodItems(itinerary, day, period) {
   return items.map((it) => findPlan(it.slug)).filter(Boolean);
 }
 
+/* ---------- Ranking: planes más repetidos entre todas las propuestas ---------- */
+
+const planRankingEl = document.getElementById("planRanking");
+
+function renderPlanRanking() {
+  if (!planRankingEl) return;
+  planRankingEl.innerHTML = "";
+  if (!proposals.length) {
+    planRankingEl.innerHTML = '<p class="proposals-empty">Todavía no hay propuestas guardadas para calcular un ranking.</p>';
+    return;
+  }
+
+  const counts = new Map(); // slug -> nº de apariciones
+  proposals.forEach((p) => {
+    DAYS.forEach(({ day }) => {
+      PERIODS.forEach(({ key: period }) => {
+        const dayState = p.itinerary && p.itinerary["day" + day];
+        getPeriodItems(dayState, period).forEach((it) => {
+          counts.set(it.slug, (counts.get(it.slug) || 0) + 1);
+        });
+      });
+    });
+  });
+
+  const ranked = [...counts.entries()]
+    .map(([slug, count]) => ({ plan: findPlan(slug), count }))
+    .filter((r) => r.plan)
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 8);
+
+  if (!ranked.length) {
+    planRankingEl.innerHTML = '<p class="proposals-empty">Ninguna propuesta guardada tiene planes asignados todavía.</p>';
+    return;
+  }
+
+  const maxCount = ranked[0].count;
+  planRankingEl.innerHTML = ranked.map(({ plan, count }, i) => {
+    const pct = Math.round((count / maxCount) * 100);
+    return (
+      '<div class="rank-row">' +
+      '<span class="rank-pos">' + (i + 1) + "</span>" +
+      '<div class="rank-info">' +
+      '<div class="rank-top">' +
+      '<span class="rank-title' + (plan.isCustom ? " proposed" : "") + '">' + escapeHtml(plan.title) + "</span>" +
+      '<span class="rank-count">' + count + (count === 1 ? " propuesta" : " propuestas") + "</span>" +
+      "</div>" +
+      '<div class="rank-bar"><div class="rank-bar-fill" style="width:' + pct + '%"></div></div>' +
+      "</div>" +
+      "</div>"
+    );
+  }).join("");
+}
+
 function formatDate(ts) {
   if (!ts || typeof ts.toDate !== "function") return "justo ahora";
   const d = ts.toDate();
@@ -764,6 +818,7 @@ async function subscribeProposals() {
     (snap) => {
       proposals = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
       renderProposals();
+      renderPlanRanking();
     },
     (err) => {
       console.error("Error cargando propuestas", err);
@@ -823,6 +878,7 @@ statusEl.textContent = "💾 Este tablero es solo tuyo, se guarda en este navega
 dayPopover = buildDayPopover();
 render();
 renderProposals();
+renderPlanRanking();
 initDragEvents();
 initProposalUI();
 initCustomUI();
