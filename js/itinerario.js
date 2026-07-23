@@ -204,8 +204,6 @@ function renderBank() {
     article.draggable = true;
     article.dataset.slug = plan.slug;
     article.innerHTML =
-      '<div class="card-top"><span class="tag' + (plan.tagClass ? " " + plan.tagClass : "") + '">' + plan.tag + "</span>" +
-      '<span class="intensity">' + plan.intensity + "</span></div>" +
       "<h3>" + plan.title + "</h3>" +
       "<p>" + plan.description + "</p>" +
       '<ul class="facts">' + plan.facts.map((f) => "<li>" + f + "</li>").join("") + "</ul>" +
