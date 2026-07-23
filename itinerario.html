@@ -55,48 +55,69 @@
     </div>
   </section>
 
-  <section class="itin-save">
-    <h2>Guarda tu propuesta</h2>
-    <p class="hint">Cuando el tablero de arriba tenga el orden que te gusta, guárdalo con tu nombre para que el grupo pueda votarlo. Pon también una contraseña: solo con ella podrás borrarla luego (para que nadie la borre sin querer).</p>
-    <div class="save-row">
-      <input type="text" id="proposalName" placeholder="Tu nombre" maxlength="40" autocomplete="name">
-      <input type="password" id="proposalPassword" placeholder="Contraseña para borrarla luego" maxlength="60" autocomplete="new-password">
-      <button class="btn btn-primary" id="saveProposalBtn" type="button">Guardar esta propuesta</button>
+  <section class="itin-save" data-collapsible="itin-save">
+    <h2 class="section-head"><span>Guarda tu propuesta</span><button class="section-toggle" type="button" data-toggle-btn aria-label="Mostrar/ocultar sección" aria-expanded="true">▾</button></h2>
+    <div class="section-body">
+      <p class="hint">Cuando el tablero de arriba tenga el orden que te gusta, guárdalo con tu nombre para que el grupo pueda votarlo. Pon también una contraseña: solo con ella podrás borrarla luego (para que nadie la borre sin querer).</p>
+      <div class="save-row">
+        <input type="text" id="proposalName" placeholder="Tu nombre" maxlength="40" autocomplete="name">
+        <input type="password" id="proposalPassword" placeholder="Contraseña para borrarla luego" maxlength="60" autocomplete="new-password">
+        <button class="btn btn-primary" id="saveProposalBtn" type="button">Guardar esta propuesta</button>
+      </div>
+      <p class="save-status" id="saveStatus"></p>
     </div>
-    <p class="save-status" id="saveStatus"></p>
   </section>
 
-  <section class="itin-proposals">
-    <h2>Propuestas del grupo</h2>
-    <p class="hint">Votad con 👍 o 👎 las propuestas guardadas para ayudar a elegir el itinerario final. Los dos piden vuestro nombre (así vale como una persona, un voto, aunque votéis desde varios dispositivos) y se muestra debajo de los botones. El 👍 es único: solo podéis dárselo a una propuesta a la vez (cambiarlo de sitio se lo quita a la anterior). El 👎 es libre, podéis ponerlo en tantas como queráis.</p>
-    <div class="proposals-list" id="proposalsList"></div>
-  </section>
-
-  <section class="itin-ranking">
-    <h2>Planes más repetidos</h2>
-    <p class="hint">Cuántas veces aparece cada plan en el conjunto de todas las propuestas guardadas: una pista de lo que más os convence al grupo, para priorizarlo.</p>
-    <div id="planRanking"></div>
-  </section>
-
-  <section class="itin-custom">
-    <h2>Propón un plan</h2>
-    <p class="hint">¿Se os ocurre un plan que no está en la lista? Añadidlo aquí: aparecerá como tarjeta para arrastrar igual que las demás, en otro color para que se note que es una propuesta vuestra. Pon también una contraseña: solo con ella podrás borrarla luego.</p>
-    <div class="custom-form">
-      <input type="text" id="customTitle" placeholder="Nombre del plan" maxlength="60">
-      <input type="text" id="customAuthor" placeholder="Tu nombre" maxlength="40">
-      <textarea id="customDetails" placeholder="Detalles del plan" maxlength="600" rows="3"></textarea>
-      <input type="password" id="customPassword" placeholder="Contraseña para borrarla luego" maxlength="60" autocomplete="new-password">
-      <button class="btn btn-primary" id="saveCustomBtn" type="button">Guardar propuesta de plan</button>
+  <section class="itin-proposals" data-collapsible="itin-proposals">
+    <h2 class="section-head"><span>Propuestas del grupo</span><button class="section-toggle" type="button" data-toggle-btn aria-label="Mostrar/ocultar sección" aria-expanded="true">▾</button></h2>
+    <div class="section-body">
+      <p class="hint">Votad con 👍 o 👎 las propuestas guardadas para ayudar a elegir el itinerario final. Los dos piden vuestro nombre (así vale como una persona, un voto, aunque votéis desde varios dispositivos) y se muestra debajo de los botones. El 👍 es único: solo podéis dárselo a una propuesta a la vez (cambiarlo de sitio se lo quita a la anterior). El 👎 es libre, podéis ponerlo en tantas como queráis. La primera card, con otro borde, la genera sola la web combinando lo más votado — no la ha guardado nadie.</p>
+      <div class="proposals-list" id="proposalsList"></div>
     </div>
-    <p class="save-status" id="customStatus"></p>
-    <div class="options" id="customPlansGrid"></div>
   </section>
 
-  <section class="itin-bank">
-    <h2>Banco de planes</h2>
-    <p class="hint">Los 20 planes, en cualquier orden — no tenéis por qué respetar el día original de cada uno. Arrastra una tarjeta a un día del tablero de arriba, o pulsa «📅 Añadir a un día» y elige. Puedes repetir la misma en varios días si queréis dejarla como reserva.</p>
-    <input type="search" class="bank-search" id="bankSearch" placeholder="🔍 Buscar plan… (ej. kayak, playa, buceo)">
-    <div class="bank-groups" id="bankGroups"></div>
+  <section class="itin-ranking" data-collapsible="itin-ranking">
+    <h2 class="section-head"><span>Planes más repetidos</span><button class="section-toggle" type="button" data-toggle-btn aria-label="Mostrar/ocultar sección" aria-expanded="true">▾</button></h2>
+    <div class="section-body">
+      <p class="hint">Cuántas veces aparece cada plan en el conjunto de todas las propuestas guardadas: una pista de lo que más os convence al grupo, para priorizarlo.</p>
+
+      <div class="trend-radar" id="trendRadar"></div>
+
+      <div id="planRanking"></div>
+    </div>
+  </section>
+
+  <section class="itin-custom" data-collapsible="itin-custom">
+    <h2 class="section-head"><span>Propón un plan</span><button class="section-toggle" type="button" data-toggle-btn aria-label="Mostrar/ocultar sección" aria-expanded="true">▾</button></h2>
+    <div class="section-body">
+      <p class="hint">¿Se os ocurre un plan que no está en la lista? Añadidlo aquí: aparecerá como tarjeta para arrastrar igual que las demás, en otro color para que se note que es una propuesta vuestra. Pon también una contraseña: solo con ella podrás borrarla luego.</p>
+      <div class="custom-form">
+        <input type="text" id="customTitle" placeholder="Nombre del plan" maxlength="60">
+        <input type="text" id="customAuthor" placeholder="Tu nombre" maxlength="40">
+        <textarea id="customDetails" placeholder="Detalles del plan" maxlength="600" rows="3"></textarea>
+        <input type="password" id="customPassword" placeholder="Contraseña para borrarla luego" maxlength="60" autocomplete="new-password">
+        <button class="btn btn-primary" id="saveCustomBtn" type="button">Guardar propuesta de plan</button>
+      </div>
+      <p class="save-status" id="customStatus"></p>
+      <div class="options" id="customPlansGrid"></div>
+    </div>
+  </section>
+
+  <section class="itin-bank" data-collapsible="itin-bank">
+    <h2 class="section-head"><span>Banco de planes</span><button class="section-toggle" type="button" data-toggle-btn aria-label="Mostrar/ocultar sección" aria-expanded="true">▾</button></h2>
+    <div class="section-body">
+      <p class="hint">Los 20 planes, en cualquier orden — no tenéis por qué respetar el día original de cada uno. Arrastra una tarjeta a un día del tablero de arriba, o pulsa «📅 Añadir a un día» y elige. Puedes repetir la misma en varios días si queréis dejarla como reserva. Vota 👍/👎 cada plan: esos votos son los que alimentan la propuesta generada automáticamente y el ranking de abajo.</p>
+      <input type="search" class="bank-search" id="bankSearch" placeholder="🔍 Buscar plan… (ej. kayak, playa, buceo)">
+      <div class="bank-groups" id="bankGroups"></div>
+    </div>
+  </section>
+
+  <section class="itin-plan-votes" data-collapsible="itin-plan-votes">
+    <h2 class="section-head"><span>Planes más votados</span><button class="section-toggle" type="button" data-toggle-btn aria-label="Mostrar/ocultar sección" aria-expanded="true">▾</button></h2>
+    <div class="section-body">
+      <p class="hint">El resultado de los votos directos 👍/👎 en las cards de planes (banco y propuestos). Alimenta directamente la propuesta generada automáticamente, arriba en «Propuestas del grupo».</p>
+      <div id="planVoteRanking"></div>
+    </div>
   </section>
 
 </main>

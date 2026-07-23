@@ -297,8 +297,7 @@ footer{background:var(--deep);color:rgba(247,239,223,.5);text-align:center;paddi
 .choose-bar .chosen-msg{
   display:none;align-items:center;gap:8px;font-weight:700;color:var(--sea);font-size:.95rem;
 }
-.choose-bar.done .chosen-msg{display:flex}
-.choose-bar.done #choosePlan{display:none}
+.choose-bar.added .chosen-msg{display:flex}
 
 @media (max-width:560px){
   .hero{min-height:74svh;padding-bottom:96px}
@@ -381,6 +380,34 @@ footer{background:var(--deep);color:rgba(247,239,223,.5);text-align:center;paddi
 }
 .itin-bank h2::before,.itin-save h2::before,.itin-proposals h2::before,.itin-custom h2::before,.itin-ranking h2::before{content:"";width:30px;height:3px;background:var(--turq);border-radius:2px}
 .itin-bank .hint,.itin-save .hint,.itin-proposals .hint,.itin-custom .hint,.itin-ranking .hint{font-size:.88rem;color:#3A566A;margin-bottom:20px}
+
+/* ---- radar de tendencias: deliberadamente "ajeno" al resto del sitio ---- */
+.trend-radar{
+  max-width:420px;margin-bottom:24px;padding:16px 18px;border-radius:14px;
+  background:#0B1A17;border:1px solid #1F3B34;color:#C9FCE8;
+  font-family:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+  box-shadow:0 10px 28px rgba(0,0,0,.25);
+}
+.radar-head{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.radar-dot{
+  width:8px;height:8px;border-radius:50%;background:#3CF2B0;flex:0 0 auto;
+  box-shadow:0 0 0 0 rgba(60,242,176,.6);animation:radar-pulse 1.6s infinite;
+}
+@keyframes radar-pulse{
+  0%{box-shadow:0 0 0 0 rgba(60,242,176,.55)}
+  70%{box-shadow:0 0 0 8px rgba(60,242,176,0)}
+  100%{box-shadow:0 0 0 0 rgba(60,242,176,0)}
+}
+.radar-title{font-size:.68rem;font-weight:700;letter-spacing:.14em;color:#7FE8C9}
+.radar-caption{font-size:.72rem;color:#7FA89B;margin-bottom:4px}
+.radar-pick{font-size:1.05rem;font-weight:700;color:#EAFFF7;line-height:1.3;transition:opacity .25s}
+.radar-pick-changed{animation:radar-flash .9s ease}
+@keyframes radar-flash{
+  0%{opacity:0;transform:translateY(3px)}
+  100%{opacity:1;transform:translateY(0)}
+}
+.radar-meta{font-size:.68rem;color:#5C8377;margin-top:6px}
+.radar-empty{font-size:.8rem;color:#5C8377}
 
 /* ---- ranking de planes más repetidos ---- */
 #planRanking{display:flex;flex-direction:column;gap:10px;max-width:640px}
@@ -521,4 +548,60 @@ footer{background:var(--deep);color:rgba(247,239,223,.5);text-align:center;paddi
 @media (max-width:560px){
   .fab-itin{right:14px;bottom:14px;padding:12px 16px;font-size:.8rem}
   .proposals-list{grid-template-columns:1fr}
+}
+
+/* ---- mostrar/ocultar secciones ---- */
+.section-head{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;
+}
+.section-toggle{
+  flex:0 0 auto;width:30px;height:30px;border-radius:50%;border:1.5px solid rgba(6,42,68,.15);
+  background:var(--white);color:var(--sea);font-size:.9rem;line-height:1;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:transform .25s,background .2s;
+}
+.section-toggle:hover{background:var(--turq-soft)}
+[data-collapsible].collapsed .section-toggle{transform:rotate(-90deg)}
+[data-collapsible].collapsed .section-body{display:none}
+
+/* ---- voto directo en cards de plan (banco + propuestos) ---- */
+.plan-vote-row{padding:10px 20px 0;display:flex;gap:8px}
+.plan-vote-btn{
+  flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  background:var(--sand-deep);border:2px solid transparent;border-radius:10px;padding:7px 8px;
+  font-weight:700;font-size:.8rem;cursor:pointer;transition:.2s;color:var(--ink);font-family:var(--body);
+}
+.plan-vote-btn:hover{border-color:var(--turq-soft)}
+.plan-vote-btn.active{background:var(--turq-soft);border-color:var(--turq);color:var(--sea)}
+.plan-vote-btn.dislike.active{background:#FFD9D3;border-color:#FF6B57;color:#B3311F}
+
+/* ---- ranking de planes más votados: reutiliza .rank-row/.rank-bar ---- */
+#planVoteRanking{display:flex;flex-direction:column;gap:10px;max-width:640px}
+
+/* ---- card generada sola por consenso ---- */
+.consensus-card{border-color:var(--turq);background:linear-gradient(175deg,#EFFBF8 0%,var(--white) 55%)}
+.consensus-badge{
+  align-self:flex-start;background:var(--turq);color:var(--deep);font-size:.72rem;font-weight:700;
+  letter-spacing:.03em;padding:4px 11px;border-radius:999px;
+}
+.consensus-hint{font-size:.78rem;color:rgba(6,42,68,.55);margin-top:-6px}
+
+/* ---- móvil: todo un poco más compacto ---- */
+@media (max-width:600px){
+  .itin-body{padding-left:14px;padding-right:14px}
+  section[data-collapsible]{margin-top:32px}
+  .card-top{padding:14px 16px 0}
+  .card h3{padding:10px 16px 0;font-size:1.05rem}
+  .card p{padding:7px 16px 0;font-size:.88rem}
+  .facts{padding:11px 16px 0}
+  .plan-vote-row{padding:8px 16px 0}
+  .card-bottom{padding:14px 16px 16px;gap:8px}
+  .proposal-card{padding:14px 16px;gap:9px}
+  .proposal-days{gap:8px;font-size:.76rem}
+  .proposal-day{padding:8px 10px}
+  .comments-list{max-height:170px}
+  .rank-row{gap:9px}
+  .rank-pos{flex-basis:22px;width:22px;height:22px;font-size:.72rem}
+  .rank-title{font-size:.86rem}
+  .save-row,.custom-form{gap:8px}
+  .trend-radar{padding:13px 14px}
 }

@@ -77,17 +77,113 @@
     });
   }
 
-  /* ---------- PÁGINA DE PLAN: botón "elegir este plan" ---------- */
+  /* ---------- PÁGINA DE PLAN: botón "añadir a un día" (mismo tablero
+     privado que itinerario.html, guardado en localStorage) ---------- */
+  var BOARD_KEY = "itin-board-state";
+  var PLAN_DAYS = [
+    { day: 1, label: "MIÉ 12", sub: "Llegada" },
+    { day: 2, label: "JUE 13", sub: "Mar" },
+    { day: 3, label: "VIE 14", sub: "Montaña" },
+    { day: 4, label: "SÁB 15", sub: "Fiesta" },
+    { day: 5, label: "DOM 16", sub: "Despedida" }
+  ];
+
+  function uid() {
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  }
+
+  function loadBoardState() {
+    try {
+      var raw = window.localStorage.getItem(BOARD_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch (e) {}
+    return {};
+  }
+
+  function saveBoardState(state) {
+    try { window.localStorage.setItem(BOARD_KEY, JSON.stringify(state)); } catch (e) {}
+  }
+
+  function ensureDayPeriodArray(state, day, period) {
+    var key = "day" + day;
+    if (!state[key] || typeof state[key] !== "object" || Array.isArray(state[key])) {
+      state[key] = { manana: [], tarde: [] };
+    }
+    if (!Array.isArray(state[key][period])) state[key][period] = [];
+    return state[key][period];
+  }
+
+  function buildPlanDayPopover() {
+    var pop = document.createElement("div");
+    pop.className = "day-popover";
+    pop.hidden = true;
+    var html = '<p class="day-popover-title">¿Qué día y qué franja?</p><div class="day-popover-options">';
+    PLAN_DAYS.forEach(function (d) {
+      html +=
+        '<div class="day-popover-row">' +
+        '<span class="day-popover-daylabel">' + d.label + " · " + d.sub + "</span>" +
+        '<button type="button" data-day="' + d.day + '" data-period="manana" title="Mañana">🌅</button>' +
+        '<button type="button" data-day="' + d.day + '" data-period="tarde" title="Tarde">🌇</button>' +
+        "</div>";
+    });
+    html += "</div>";
+    pop.innerHTML = html;
+    document.body.appendChild(pop);
+    return pop;
+  }
+
+  function positionPopover(pop, button) {
+    pop.hidden = false;
+    var btnRect = button.getBoundingClientRect();
+    var popRect = pop.getBoundingClientRect();
+    var top = btnRect.top - popRect.height - 8;
+    var left = btnRect.left;
+    if (left + popRect.width > window.innerWidth - 12) left = window.innerWidth - popRect.width - 12;
+    if (left < 12) left = 12;
+    if (top < 12) top = btnRect.bottom + 8;
+    pop.style.top = top + "px";
+    pop.style.left = left + "px";
+  }
+
   function initChoose() {
     var btn = document.getElementById("choosePlan");
     if (!btn) return;
     var bar = document.getElementById("chooseBar");
-    var day = btn.getAttribute("data-day");
+    var msg = bar ? bar.querySelector(".chosen-msg") : null;
     var slug = btn.getAttribute("data-slug");
-    if (store.get("plan-dia-" + day) === slug && bar) bar.classList.add("done");
+    var pop = buildPlanDayPopover();
+
+    function closePopover() { pop.hidden = true; }
+
     btn.addEventListener("click", function () {
-      store.set("plan-dia-" + day, slug);
-      if (bar) bar.classList.add("done");
+      if (!pop.hidden) { closePopover(); return; }
+      positionPopover(pop, btn);
+    });
+
+    pop.addEventListener("click", function (e) {
+      var choice = e.target.closest("button[data-day]");
+      if (!choice) return;
+      var day = Number(choice.getAttribute("data-day"));
+      var period = choice.getAttribute("data-period");
+      var state = loadBoardState();
+      ensureDayPeriodArray(state, day, period).push({ id: uid(), slug: slug });
+      saveBoardState(state);
+      closePopover();
+      if (bar) bar.classList.add("added");
+      if (msg) {
+        var dayInfo = PLAN_DAYS[day - 1];
+        var periodLabel = period === "manana" ? "🌅 Mañana" : "🌇 Tarde";
+        msg.textContent = "✓ Añadido a tu tablero: " + dayInfo.label + " · " + periodLabel;
+      }
+    });
+
+    document.addEventListener("click", function (e) {
+      if (pop.hidden) return;
+      if (e.target === btn || pop.contains(e.target)) return;
+      closePopover();
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") closePopover();
     });
   }
 

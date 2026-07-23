@@ -32,9 +32,11 @@ let dragInfo = null;
 let proposals = []; // [{id, name, itinerary, votes, comments, createdAt}]
 let customPlans = []; // [{id, title, author, details, createdAt}]
 let expandedComments = new Set(); // ids de propuestas con el panel de comentarios abierto
+let planVotesData = {}; // slug -> {votes: {name-normalizado: {choice, name}}}
 
 const NAME_KEY = "itin-your-name";
 const BOARD_KEY = "itin-board-state";
+const COLLAPSE_KEY = "itin-collapsed-sections";
 
 function uid() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
@@ -207,6 +209,7 @@ function renderBank() {
       "<h3>" + plan.title + "</h3>" +
       "<p>" + plan.description + "</p>" +
       '<ul class="facts">' + plan.facts.map((f) => "<li>" + f + "</li>").join("") + "</ul>" +
+      renderPlanVoteRowHtml(plan.slug) +
       '<div class="card-bottom">' +
       '<a class="btn btn-primary" href="' + plan.href + '" target="_blank" rel="noopener">Ver plan detallado →</a>' +
       '<button class="btn btn-ghost add-day-btn" type="button" data-slug="' + plan.slug + '">📅 Añadir a un día</button>' +
@@ -238,6 +241,7 @@ function renderCustomPlans() {
       '<button class="delete-btn" data-delete-custom="1" data-id="' + plan.id + '" title="Borrar propuesta de plan" aria-label="Borrar">✕</button></div>' +
       "<h3>" + escapeHtml(plan.title) + "</h3>" +
       "<p>" + escapeHtml(plan.details) + "</p>" +
+      renderPlanVoteRowHtml(plan.id) +
       '<div class="card-bottom">' +
       '<button class="btn btn-ghost add-day-btn" type="button" data-slug="' + plan.id + '">📅 Añadir a un día</button>' +
       "</div>";
@@ -321,6 +325,8 @@ async function subscribeCustomPlans() {
          pintado, hay que repintarlas para que dejen de mostrar "—". */
       renderProposals();
       renderPlanRanking();
+      renderTrendRadar();
+      renderPlanVoteRanking();
     },
     (err) => {
       console.error("Error cargando planes propuestos", err);
@@ -351,6 +357,44 @@ function initBoardToolbar() {
     persistBoard();
     render();
   });
+}
+
+/* ---------- Mostrar/ocultar secciones (preferencia solo tuya, en este navegador) ---------- */
+
+function loadCollapsedSections() {
+  try {
+    return new Set(JSON.parse(localStorage.getItem(COLLAPSE_KEY) || "[]"));
+  } catch {
+    return new Set();
+  }
+}
+
+let collapsedSections = loadCollapsedSections();
+
+function applyCollapsedState() {
+  document.querySelectorAll("[data-collapsible]").forEach((section) => {
+    const collapsed = collapsedSections.has(section.dataset.collapsible);
+    section.classList.toggle("collapsed", collapsed);
+    const btn = section.querySelector("[data-toggle-btn]");
+    if (btn) btn.setAttribute("aria-expanded", String(!collapsed));
+  });
+}
+
+function initCollapsibleSections() {
+  document.querySelectorAll("[data-collapsible]").forEach((section) => {
+    const btn = section.querySelector("[data-toggle-btn]");
+    if (!btn) return;
+    btn.addEventListener("click", () => {
+      const id = section.dataset.collapsible;
+      if (collapsedSections.has(id)) collapsedSections.delete(id);
+      else collapsedSections.add(id);
+      try {
+        localStorage.setItem(COLLAPSE_KEY, JSON.stringify([...collapsedSections]));
+      } catch {}
+      applyCollapsedState();
+    });
+  });
+  applyCollapsedState();
 }
 
 /* ---------- Botón "Añadir a un día" (alternativa a arrastrar) ---------- */
@@ -509,6 +553,11 @@ function initDragEvents() {
       vote(card.dataset.id, voteBtn.dataset.vote);
       return;
     }
+    const planVoteBtn = e.target.closest("[data-plan-vote]");
+    if (planVoteBtn) {
+      voteForPlan(planVoteBtn.dataset.slug, planVoteBtn.dataset.planVote);
+      return;
+    }
     const deleteProposalBtn = e.target.closest("[data-delete-proposal]");
     if (deleteProposalBtn) {
       const card = deleteProposalBtn.closest(".proposal-card");
@@ -620,18 +669,33 @@ function proposalPeriodItems(itinerary, day, period) {
   return items.map((it) => findPlan(it.slug)).filter(Boolean);
 }
 
+/* Genera el HTML de los días en recuadro (mañana/tarde) a partir de un
+   objeto itinerary — lo comparten las propuestas reales y la card
+   generada automáticamente por consenso. */
+function buildProposalDaysHtml(itinerary) {
+  return DAYS.map(({ day, label }) => {
+    const periodsHtml = PERIODS.map(({ key: period, label: periodLabel }) => {
+      const plans = proposalPeriodItems(itinerary, day, period);
+      const list = plans.length
+        ? plans.map((pl) => "<li>" + escapeHtml(pl.title) + "</li>").join("")
+        : '<li class="pd-empty">—</li>';
+      return '<div class="pd-period"><span class="pd-period-label">' + periodLabel + '</span><ul>' + list + "</ul></div>";
+    }).join("");
+    return '<div class="proposal-day"><span class="pd-label">' + label + "</span>" + periodsHtml + "</div>";
+  }).join("");
+}
+
 /* ---------- Ranking: planes más repetidos entre todas las propuestas ---------- */
 
 const planRankingEl = document.getElementById("planRanking");
+const trendRadarEl = document.getElementById("trendRadar");
+const planVoteRankingEl = document.getElementById("planVoteRanking");
+let lastTrendSlug = undefined; // undefined = todavía no se ha pintado ni una vez
 
-function renderPlanRanking() {
-  if (!planRankingEl) return;
-  planRankingEl.innerHTML = "";
-  if (!proposals.length) {
-    planRankingEl.innerHTML = '<p class="proposals-empty">Todavía no hay propuestas guardadas para calcular un ranking.</p>';
-    return;
-  }
-
+/* Cuenta cuántas veces aparece cada plan en el conjunto de todas las
+   propuestas guardadas, de más a menos elegido. Lo usan tanto el
+   ranking como el radar de tendencias. */
+function rankPlans() {
   const counts = new Map(); // slug -> nº de apariciones
   proposals.forEach((p) => {
     DAYS.forEach(({ day }) => {
@@ -643,12 +707,21 @@ function renderPlanRanking() {
       });
     });
   });
-
-  const ranked = [...counts.entries()]
+  return [...counts.entries()]
     .map(([slug, count]) => ({ plan: findPlan(slug), count }))
     .filter((r) => r.plan)
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 8);
+    .sort((a, b) => b.count - a.count);
+}
+
+function renderPlanRanking() {
+  if (!planRankingEl) return;
+  planRankingEl.innerHTML = "";
+  if (!proposals.length) {
+    planRankingEl.innerHTML = '<p class="proposals-empty">Todavía no hay propuestas guardadas para calcular un ranking.</p>';
+    return;
+  }
+
+  const ranked = rankPlans().slice(0, 8);
 
   if (!ranked.length) {
     planRankingEl.innerHTML = '<p class="proposals-empty">Ninguna propuesta guardada tiene planes asignados todavía.</p>';
@@ -673,6 +746,32 @@ function renderPlanRanking() {
   }).join("");
 }
 
+/* Un widget con pinta de "servicio externo" (radar/analítica en vivo) que
+   simplemente muestra el plan nº1 de rankPlans() en otro estilo, y se anima
+   cuando cambia el líder para que se note que "se mueve solo". */
+function renderTrendRadar() {
+  if (!trendRadarEl) return;
+  const ranked = rankPlans();
+  const top = ranked[0];
+
+  if (!top) {
+    trendRadarEl.innerHTML =
+      '<div class="radar-head"><span class="radar-dot"></span><span class="radar-title">RADAR DE TENDENCIAS</span></div>' +
+      '<p class="radar-empty">Sin señal todavía — esperando propuestas guardadas…</p>';
+    lastTrendSlug = null;
+    return;
+  }
+
+  const justChanged = lastTrendSlug !== undefined && lastTrendSlug !== null && lastTrendSlug !== top.plan.slug;
+  lastTrendSlug = top.plan.slug;
+
+  trendRadarEl.innerHTML =
+    '<div class="radar-head"><span class="radar-dot"></span><span class="radar-title">RADAR DE TENDENCIAS</span></div>' +
+    '<p class="radar-caption">Lo que más se lleva ahora mismo:</p>' +
+    '<p class="radar-pick' + (justChanged ? " radar-pick-changed" : "") + '">' + escapeHtml(top.plan.title) + "</p>" +
+    '<p class="radar-meta">Detectado en ' + top.count + (top.count === 1 ? " propuesta" : " propuestas") + " · actualizado en directo</p>";
+}
+
 function formatDate(ts) {
   if (!ts || typeof ts.toDate !== "function") return "justo ahora";
   const d = ts.toDate();
@@ -687,6 +786,181 @@ function voteNames(votes, choice) {
     .map((v) => v.name);
 }
 
+function proposalScore(p) {
+  return voteNames(p.votes, "like").length - voteNames(p.votes, "dislike").length;
+}
+
+/* ---------- Voto directo a planes individuales (banco + propuestos) ---------- */
+
+function planVoteCounts(slug) {
+  const votes = planVotesData[slug] && planVotesData[slug].votes;
+  return { like: voteNames(votes, "like").length, dislike: voteNames(votes, "dislike").length };
+}
+
+function planNetScore(slug) {
+  const { like, dislike } = planVoteCounts(slug);
+  return like - dislike;
+}
+
+function renderPlanVoteRowHtml(slug) {
+  const { like, dislike } = planVoteCounts(slug);
+  const myKey = normalizeName(localStorage.getItem(NAME_KEY) || "");
+  const votes = planVotesData[slug] && planVotesData[slug].votes;
+  const mine = myKey && votes && votes[myKey];
+  return (
+    '<div class="plan-vote-row">' +
+    '<button class="plan-vote-btn like' + (mine && mine.choice === "like" ? " active" : "") + '" data-plan-vote="like" data-slug="' + slug + '">👍 <span>' + like + "</span></button>" +
+    '<button class="plan-vote-btn dislike' + (mine && mine.choice === "dislike" ? " active" : "") + '" data-plan-vote="dislike" data-slug="' + slug + '">👎 <span>' + dislike + "</span></button>" +
+    "</div>"
+  );
+}
+
+/* A diferencia del voto de propuestas, aquí el 👍 no es exclusivo: tiene
+   sentido que os guste más de un plan a la vez. Ambos piden nombre, por
+   el mismo motivo que en propuestas (una persona, un voto, aunque cambie
+   de dispositivo). */
+async function voteForPlan(slug, choice) {
+  const firestoreMod = await initFirebase();
+  if (!firestoreMod || !db) return;
+  const displayName = promptVoterName();
+  if (!displayName) return;
+  const key = normalizeName(displayName);
+  const votes = planVotesData[slug] && planVotesData[slug].votes;
+  const current = votes && votes[key];
+
+  try {
+    if (current && current.choice === choice) {
+      await firestoreMod.setDoc(
+        firestoreMod.doc(db, "planVotes", slug),
+        { votes: { [key]: firestoreMod.deleteField() } },
+        { merge: true }
+      );
+      return;
+    }
+    await firestoreMod.setDoc(
+      firestoreMod.doc(db, "planVotes", slug),
+      { votes: { [key]: { choice, name: displayName } } },
+      { merge: true }
+    );
+  } catch (err) {
+    console.error("Error al votar el plan", err);
+  }
+}
+
+async function subscribePlanVotes() {
+  const firestoreMod = await initFirebase();
+  if (!firestoreMod) return;
+  const col = firestoreMod.collection(db, "planVotes");
+  firestoreMod.onSnapshot(
+    col,
+    (snap) => {
+      planVotesData = {};
+      snap.docs.forEach((d) => {
+        planVotesData[d.id] = d.data();
+      });
+      render();
+      renderProposals();
+      renderPlanVoteRanking();
+    },
+    (err) => {
+      console.error("Error cargando votos de planes", err);
+    }
+  );
+}
+
+function renderPlanVoteRanking() {
+  if (!planVoteRankingEl) return;
+  const allSlugs = [...PLANS.map((p) => p.slug), ...customPlans.map((p) => p.id)];
+  const ranked = allSlugs
+    .map((slug) => ({ plan: findPlan(slug), score: planNetScore(slug), counts: planVoteCounts(slug) }))
+    .filter((r) => r.plan && (r.counts.like > 0 || r.counts.dislike > 0))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 8);
+
+  if (!ranked.length) {
+    planVoteRankingEl.innerHTML = '<p class="proposals-empty">Todavía no hay votos directos en ningún plan. ¡Votad en el Banco de planes!</p>';
+    return;
+  }
+
+  const maxScore = Math.max(1, ranked[0].score);
+  planVoteRankingEl.innerHTML = ranked.map(({ plan, score, counts }, i) => {
+    const pct = Math.max(6, Math.round((Math.max(0, score) / maxScore) * 100));
+    return (
+      '<div class="rank-row">' +
+      '<span class="rank-pos">' + (i + 1) + "</span>" +
+      '<div class="rank-info">' +
+      '<div class="rank-top">' +
+      '<span class="rank-title' + (plan.isCustom ? " proposed" : "") + '">' + escapeHtml(plan.title) + "</span>" +
+      '<span class="rank-count">👍' + counts.like + " · 👎" + counts.dislike + "</span>" +
+      "</div>" +
+      '<div class="rank-bar"><div class="rank-bar-fill" style="width:' + pct + '%"></div></div>' +
+      "</div>" +
+      "</div>"
+    );
+  }).join("");
+}
+
+/* Para cada hueco (día + mañana/tarde), suma cuántas veces aparece cada
+   plan entre todas las propuestas guardadas, pesando cada aparición por
+   los votos netos de esa propuesta (👍 − 👎, nunca menos de 0: una
+   propuesta con más negativos que positivos no resta, simplemente no
+   aporta). Se queda con el plan más pesado de cada hueco. Devuelve null
+   si no hay ninguna propuesta con voto neto positivo o neutro. */
+/* Para cada hueco (día + mañana/tarde), mira qué planes han ocupado ese
+   hueco en alguna propuesta guardada (esa parte sigue viniendo de dónde
+   los habéis arrastrado de verdad) y, entre esos candidatos, se queda con
+   el que tenga más votos directos netos (👍−👎) en su card del banco.
+   Cada aparición vale al menos 1, más el bono de sus votos directos, así
+   que un plan muy votado puede ganarle a otro que salga en más
+   propuestas pero guste menos. */
+function buildConsensusItinerary() {
+  if (!proposals.length) return null;
+
+  const itinerary = {};
+  let filledSlots = 0;
+  DAYS.forEach(({ day }) => {
+    const dayKey = "day" + day;
+    itinerary[dayKey] = {};
+    PERIODS.forEach(({ key: period }) => {
+      const tally = new Map(); // slug -> peso acumulado
+      proposals.forEach((p) => {
+        const dayState = p.itinerary && p.itinerary[dayKey];
+        getPeriodItems(dayState, period).forEach((it) => {
+          const weight = 1 + Math.max(0, planNetScore(it.slug));
+          tally.set(it.slug, (tally.get(it.slug) || 0) + weight);
+        });
+      });
+      let bestSlug = null;
+      let bestWeight = 0;
+      tally.forEach((weight, slug) => {
+        if (weight > bestWeight) {
+          bestWeight = weight;
+          bestSlug = slug;
+        }
+      });
+      itinerary[dayKey][period] = bestSlug ? [{ slug: bestSlug }] : [];
+      if (bestSlug) filledSlots += 1;
+    });
+  });
+
+  if (!filledSlots) return null;
+  return { itinerary };
+}
+
+function renderConsensusCard() {
+  const consensus = buildConsensusItinerary();
+  if (!consensus) return "";
+  const daysHtml = buildProposalDaysHtml(consensus.itinerary);
+  return (
+    '<div class="proposal-card consensus-card">' +
+    '<span class="consensus-badge">🧩 Generada sola</span>' +
+    '<div class="proposal-head"><h3>Lo que mejor está encajando</h3></div>' +
+    '<p class="consensus-hint">Combina, hueco a hueco, el plan que más se repite entre vuestras propuestas guardadas y con más votos directos en el Banco de planes. Se recalcula sola cada vez que votáis un plan o guardáis una propuesta nueva.</p>' +
+    '<div class="proposal-days">' + daysHtml + "</div>" +
+    "</div>"
+  );
+}
+
 function renderProposals() {
   if (!proposalsListEl) return;
   proposalsListEl.innerHTML = "";
@@ -697,14 +971,16 @@ function renderProposals() {
     proposalsListEl.appendChild(empty);
     return;
   }
+  const consensusHtml = renderConsensusCard();
+  if (consensusHtml) proposalsListEl.insertAdjacentHTML("beforeend", consensusHtml);
+
   const myNameKey = normalizeName(localStorage.getItem(NAME_KEY) || "");
-  const score = (p) => voteNames(p.votes, "like").length - voteNames(p.votes, "dislike").length;
-  const sorted = [...proposals].sort((a, b) => score(b) - score(a));
+  const sorted = [...proposals].sort((a, b) => proposalScore(b) - proposalScore(a));
 
   /* Solo se destaca cuando hay un líder claro (puntúa más que la
      segunda y por encima de 0): con empate, nadie se corona. */
-  const topScore = sorted.length ? score(sorted[0]) : 0;
-  const secondScore = sorted.length > 1 ? score(sorted[1]) : -Infinity;
+  const topScore = sorted.length ? proposalScore(sorted[0]) : 0;
+  const secondScore = sorted.length > 1 ? proposalScore(sorted[1]) : -Infinity;
   const hasLeader = sorted.length > 0 && topScore > 0 && topScore > secondScore;
 
   sorted.forEach((p, i) => {
@@ -715,16 +991,7 @@ function renderProposals() {
     const likeNames = voteNames(p.votes, "like");
     const dislikeNames = voteNames(p.votes, "dislike");
 
-    const daysHtml = DAYS.map(({ day, label }) => {
-      const periodsHtml = PERIODS.map(({ key: period, label: periodLabel }) => {
-        const plans = proposalPeriodItems(p.itinerary, day, period);
-        const list = plans.length
-          ? plans.map((pl) => "<li>" + escapeHtml(pl.title) + "</li>").join("")
-          : '<li class="pd-empty">—</li>';
-        return '<div class="pd-period"><span class="pd-period-label">' + periodLabel + '</span><ul>' + list + "</ul></div>";
-      }).join("");
-      return '<div class="proposal-day"><span class="pd-label">' + label + "</span>" + periodsHtml + "</div>";
-    }).join("");
+    const daysHtml = buildProposalDaysHtml(p.itinerary);
 
     const comments = Array.isArray(p.comments) ? p.comments : [];
     const commentsOpen = expandedComments.has(p.id);
@@ -893,6 +1160,8 @@ async function subscribeProposals() {
       proposals = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
       renderProposals();
       renderPlanRanking();
+      renderTrendRadar();
+      renderPlanVoteRanking();
     },
     (err) => {
       console.error("Error cargando propuestas", err);
@@ -953,10 +1222,14 @@ dayPopover = buildDayPopover();
 render();
 renderProposals();
 renderPlanRanking();
+renderTrendRadar();
+renderPlanVoteRanking();
 initDragEvents();
 initProposalUI();
 initCustomUI();
 initBankSearch();
 initBoardToolbar();
+initCollapsibleSections();
 subscribeProposals();
 subscribeCustomPlans();
+subscribePlanVotes();
