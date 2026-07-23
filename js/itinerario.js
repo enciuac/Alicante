@@ -29,8 +29,9 @@ let state = emptyState();
 let firebaseReady = false;
 let db = null;
 let dragInfo = null;
-let proposals = []; // [{id, name, itinerary, votes, createdAt}]
+let proposals = []; // [{id, name, itinerary, votes, comments, createdAt}]
 let customPlans = []; // [{id, title, author, details, createdAt}]
+let expandedComments = new Set(); // ids de propuestas con el panel de comentarios abierto
 
 const NAME_KEY = "itin-your-name";
 const BOARD_KEY = "itin-board-state";
@@ -514,6 +515,21 @@ function initDragEvents() {
       deleteProposal(card.dataset.id);
       return;
     }
+    const commentsToggleBtn = e.target.closest("[data-comments-toggle]");
+    if (commentsToggleBtn) {
+      const card = commentsToggleBtn.closest(".proposal-card");
+      const id = card.dataset.id;
+      if (expandedComments.has(id)) expandedComments.delete(id);
+      else expandedComments.add(id);
+      renderProposals();
+      return;
+    }
+    const addCommentBtn = e.target.closest("[data-add-comment]");
+    if (addCommentBtn) {
+      const card = addCommentBtn.closest(".proposal-card");
+      addComment(card);
+      return;
+    }
     const deleteCustomBtn = e.target.closest("[data-delete-custom]");
     if (deleteCustomBtn) {
       deleteCustomPlan(deleteCustomBtn.dataset.id);
@@ -710,6 +726,9 @@ function renderProposals() {
       return '<div class="proposal-day"><span class="pd-label">' + label + "</span>" + periodsHtml + "</div>";
     }).join("");
 
+    const comments = Array.isArray(p.comments) ? p.comments : [];
+    const commentsOpen = expandedComments.has(p.id);
+
     card.innerHTML =
       (hasLeader && i === 0 ? '<span class="featured-badge">🏆 Más votada</span>' : "") +
       '<div class="proposal-head"><h3>' + escapeHtml(p.name) + '</h3><span class="proposal-date">' + formatDate(p.createdAt) +
@@ -718,12 +737,67 @@ function renderProposals() {
       '<div class="vote-row">' +
       '<button class="vote-btn like' + (myVote && myVote.choice === "like" ? " active" : "") + '" data-vote="like">👍 <span>' + likeNames.length + "</span></button>" +
       '<button class="vote-btn dislike' + (myVote && myVote.choice === "dislike" ? " active" : "") + '" data-vote="dislike">👎 <span>' + dislikeNames.length + "</span></button>" +
+      '<button class="comments-toggle' + (commentsOpen ? " active" : "") + '" data-comments-toggle="1">💬 Comentarios <span>(' + comments.length + ")</span></button>" +
       "</div>" +
       (likeNames.length ? '<p class="vote-names">👍 ' + likeNames.map(escapeHtml).join(", ") + "</p>" : "") +
       (dislikeNames.length ? '<p class="vote-names dislike">👎 ' + dislikeNames.map(escapeHtml).join(", ") + "</p>" : "") +
+      (commentsOpen ? renderCommentsPanel(comments) : "") +
       '<a class="btn btn-ghost view-proposal-btn" href="propuesta.html?id=' + encodeURIComponent(p.id) + '" target="_blank" rel="noopener">Ver propuesta →</a>';
     proposalsListEl.appendChild(card);
   });
+}
+
+function formatCommentDate(ms) {
+  if (!ms) return "";
+  const d = new Date(ms);
+  return d.toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit" }) + " " +
+    d.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
+}
+
+function renderCommentsPanel(comments) {
+  const sorted = [...comments].sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+  const list = sorted.length
+    ? sorted.map((c) =>
+        '<li class="comment-item"><div class="comment-top"><span class="comment-name">' + escapeHtml(c.name) +
+        '</span><span class="comment-date">' + formatCommentDate(c.createdAt) + "</span></div>" +
+        '<p class="comment-text">' + escapeHtml(c.text) + "</p></li>"
+      ).join("")
+    : '<li class="comment-empty">Todavía no hay comentarios. ¡Sé el primero!</li>';
+  const savedName = localStorage.getItem(NAME_KEY) || "";
+  return (
+    '<div class="comments-panel">' +
+    '<ul class="comments-list">' + list + "</ul>" +
+    '<div class="comment-form">' +
+    '<input type="text" class="comment-name-input" placeholder="Tu nombre" maxlength="40" value="' + escapeHtml(savedName) + '">' +
+    '<input type="text" class="comment-text-input" placeholder="Escribe un comentario…" maxlength="300">' +
+    '<button class="btn btn-primary comment-send-btn" data-add-comment="1">Comentar</button>' +
+    "</div>" +
+    "</div>"
+  );
+}
+
+async function addComment(card) {
+  const proposalId = card.dataset.id;
+  const nameInput = card.querySelector(".comment-name-input");
+  const textInput = card.querySelector(".comment-text-input");
+  const name = nameInput.value.trim();
+  const text = textInput.value.trim();
+  if (!name || !text) {
+    alert("Escribe tu nombre y el comentario antes de enviarlo.");
+    (name ? textInput : nameInput).focus();
+    return;
+  }
+  const firestoreMod = await initFirebase();
+  if (!firestoreMod || !db) return;
+  localStorage.setItem(NAME_KEY, name);
+  try {
+    await firestoreMod.updateDoc(
+      firestoreMod.doc(db, "propuestas", proposalId),
+      { comments: firestoreMod.arrayUnion({ name, text, createdAt: Date.now() }) }
+    );
+  } catch (err) {
+    console.error("Error al comentar", err);
+  }
 }
 
 async function deleteProposal(proposalId) {

@@ -474,7 +474,7 @@ footer{background:var(--deep);color:rgba(247,239,223,.5);text-align:center;paddi
 .pd-period-label{flex:0 0 20px;font-size:.75rem;line-height:1.5}
 .pd-period ul{list-style:none;display:flex;flex-direction:column;gap:2px;color:#3A566A;flex:1}
 .pd-empty{color:rgba(6,42,68,.35);font-style:italic}
-.vote-row{display:flex;gap:10px;margin-top:auto;padding-top:6px;border-top:1px dashed rgba(6,42,68,.14)}
+.vote-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:auto;padding-top:6px;border-top:1px dashed rgba(6,42,68,.14)}
 .vote-btn{
   flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;
   background:var(--sand-deep);border:2px solid transparent;border-radius:10px;padding:8px 10px;
@@ -485,6 +485,30 @@ footer{background:var(--deep);color:rgba(247,239,223,.5);text-align:center;paddi
 .vote-btn.dislike.active{background:#FFD9D3;border-color:#FF6B57;color:#B3311F}
 .vote-names{font-size:.75rem;color:rgba(6,42,68,.55);margin-top:-2px}
 .vote-names.dislike{color:rgba(179,49,31,.7)}
+
+.comments-toggle{
+  flex:1 1 100%;display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  background:var(--sand-deep);border:2px solid transparent;border-radius:10px;padding:8px 10px;
+  font-weight:700;font-size:.85rem;cursor:pointer;transition:.2s;color:var(--ink);font-family:var(--body);
+}
+.comments-toggle:hover{border-color:var(--turq-soft)}
+.comments-toggle.active{background:var(--turq-soft);border-color:var(--turq);color:var(--sea)}
+.comments-panel{display:flex;flex-direction:column;gap:10px;padding-top:2px}
+.comments-list{list-style:none;display:flex;flex-direction:column;gap:8px;max-height:220px;overflow-y:auto;padding-right:2px}
+.comment-item{background:rgba(14,76,110,.045);border:1px solid rgba(6,42,68,.09);border-radius:10px;padding:8px 10px}
+.comment-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.comment-name{font-weight:700;font-size:.78rem;color:var(--sea)}
+.comment-date{font-size:.68rem;color:rgba(6,42,68,.4);white-space:nowrap}
+.comment-text{font-size:.82rem;color:#3A566A;margin-top:2px;word-break:break-word}
+.comment-empty{font-size:.8rem;color:rgba(6,42,68,.4);font-style:italic}
+.comment-form{display:flex;gap:8px;flex-wrap:wrap}
+.comment-form input{
+  flex:1 1 120px;padding:9px 12px;border-radius:10px;border:1.5px solid rgba(6,42,68,.18);
+  font-family:var(--body);font-size:.85rem;background:var(--white);color:var(--ink);
+}
+.comment-form input:focus{outline:none;border-color:var(--turq)}
+.comment-form .comment-name-input{flex:0 1 130px}
+.comment-form .btn{width:auto;flex:0 0 auto;padding:9px 16px;font-size:.85rem}
 
 /* ---- botón flotante ---- */
 .fab-itin{
